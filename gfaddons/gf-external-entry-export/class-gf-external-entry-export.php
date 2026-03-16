@@ -409,4 +409,47 @@ class GF_External_Entry_Export extends GFAddOn {
         );
     }
 
-   }
+    /**
+     * Get field choices for form settings.
+     *
+     * @param array $form Form object.
+     * @return array
+     */
+    private function get_field_choices( $form ) {
+        $choices = array();
+
+        if ( empty( $form['fields'] ) ) {
+            return $choices;
+        }
+
+        foreach ( $form['fields'] as $field ) {
+            // Skip non-data fields
+            if ( in_array( $field->type, array( 'html', 'section', 'page', 'captcha' ), true ) ) {
+                continue;
+            }
+
+            $field_label = ! empty( $field->adminLabel ) ? $field->adminLabel : $field->label;
+
+            // Handle multi-input fields
+            if ( is_array( $field->inputs ) && ! empty( $field->inputs ) ) {
+                foreach ( $field->inputs as $input ) {
+                    if ( ! empty( $input['isHidden'] ) ) {
+                        continue;
+                    }
+                    $input_label = ! empty( $input['label'] ) ? $input['label'] : $field_label;
+                    $choices[]   = array(
+                        'label' => sprintf( '%s (%s)', $field_label, $input_label ),
+                        'name'  => 'field_' . str_replace( '.', '_', $input['id'] ),
+                    );
+                }
+            } else {
+                $choices[] = array(
+                    'label' => $field_label,
+                    'name'  => 'field_' . $field->id,
+                );
+            }
+        }
+
+        return $choices;
+    }
+}
