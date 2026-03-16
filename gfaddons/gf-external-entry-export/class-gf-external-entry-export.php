@@ -201,5 +201,86 @@ class GF_External_Entry_Export extends GFAddOn {
         );
     }
 
-
+    /**
+     * Plugin settings fields.
+     *
+     * @return array
+     */
+    public function plugin_settings_fields() {
+        return array(
+            array(
+                'title'       => esc_html__( 'External Entry Export Settings', 'gf-external-entry-export' ),
+                'description' => esc_html__( 'Configure global settings for external entry export links.', 'gf-external-entry-export' ),
+                'fields'      => array(
+                    array(
+                        'name'          => 'default_expiration',
+                        'label'         => esc_html__( 'Default Link Expiration', 'gf-external-entry-export' ),
+                        'type'          => 'select',
+                        'default_value' => '24',
+                        'choices'       => array(
+                            array( 'label' => esc_html__( '1 Hour', 'gf-external-entry-export' ), 'value' => '1' ),
+                            array( 'label' => esc_html__( '6 Hours', 'gf-external-entry-export' ), 'value' => '6' ),
+                            array( 'label' => esc_html__( '24 Hours', 'gf-external-entry-export' ), 'value' => '24' ),
+                            array( 'label' => esc_html__( '7 Days', 'gf-external-entry-export' ), 'value' => '168' ),
+                            array( 'label' => esc_html__( '30 Days', 'gf-external-entry-export' ), 'value' => '720' ),
+                            array( 'label' => esc_html__( 'Never', 'gf-external-entry-export' ), 'value' => '0' ),
+                        ),
+                        'tooltip'       => esc_html__( 'How long export links remain valid by default.', 'gf-external-entry-export' ),
+                    ),
+                    array(
+                        'name'          => 'max_downloads',
+                        'label'         => esc_html__( 'Max Downloads Per Link', 'gf-external-entry-export' ),
+                        'type'          => 'text',
+                        'input_type'    => 'number',
+                        'default_value' => '10',
+                        'tooltip'       => esc_html__( 'Maximum number of times a link can be used. Set to 0 for unlimited.', 'gf-external-entry-export' ),
+                    ),
+                    array(
+                        'name'          => 'enable_logging',
+                        'label'         => esc_html__( 'Enable Access Logging', 'gf-external-entry-export' ),
+                        'type'          => 'checkbox',
+                        'choices'       => array(
+                            array(
+                                'label'         => esc_html__( 'Log all export link access attempts', 'gf-external-entry-export' ),
+                                'name'          => 'enable_logging',
+                                'default_value' => 1,
+                            ),
+                        ),
+                        'tooltip'       => esc_html__( 'Track when export links are accessed, including IP address and timestamp.', 'gf-external-entry-export' ),
+                    ),
+                    array(
+                        'name'    => 'secret_key',
+                        'label'   => esc_html__( 'Token Secret Key', 'gf-external-entry-export' ),
+                        'type'    => 'text',
+                        'class'   => 'medium code',
+                        'tooltip' => esc_html__( 'Secret key used to sign export tokens. Auto-generated if empty.', 'gf-external-entry-export' ),
+                        'after_input' => '<button type="button" class="button" onclick="gfEEEGenerateKey();">' . esc_html__( 'Generate', 'gf-external-entry-export' ) . '</button>',
+                    ),
+                ),
+            ),
+            array(
+                'title'  => esc_html__( 'Security', 'gf-external-entry-export' ),
+                'fields' => array(
+                    array(
+                        'name'    => 'allowed_ips',
+                        'label'   => esc_html__( 'IP Allowlist', 'gf-external-entry-export' ),
+                        'type'    => 'textarea',
+                        'class'   => 'medium',
+                        'tooltip' => esc_html__( 'Restrict export access to specific IP addresses (one per line). Leave empty to allow all.', 'gf-external-entry-export' ),
+                    ),
+                    array(
+                        'name'    => 'require_user_agent',
+                        'label'   => esc_html__( 'Require User Agent', 'gf-external-entry-export' ),
+                        'type'    => 'checkbox',
+                        'choices' => array(
+                            array(
+                                'label' => esc_html__( 'Block requests without a valid user agent', 'gf-external-entry-export' ),
+                                'name'  => 'require_user_agent',
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        );
+    }
 }
