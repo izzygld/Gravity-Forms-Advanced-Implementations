@@ -1,0 +1,4 @@
+# Local WP stack directories
+gfaddons/app/
+gfaddons/conf/
+gfaddons/logs/
