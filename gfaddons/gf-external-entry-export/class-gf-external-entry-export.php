@@ -452,4 +452,30 @@ class GF_External_Entry_Export extends GFAddOn {
 
         return $choices;
     }
+
+    /**
+     * Add form settings menu item.
+     *
+     * @param array $menu_items Existing menu items.
+     * @param int   $form_id    Form ID.
+     * @return array
+     */
+    public function add_form_settings_menu( $menu_items, $form_id ) {
+        $menu_items[] = array(
+            'name'         => $this->_slug,
+            'label'        => $this->_short_title,
+            'icon'         => $this->get_menu_icon(),
+            'capabilities' => array( $this->_capabilities_form_settings ),
+        );
+        return $menu_items;
+    }
+
+    /**
+     * Get menu icon.
+     *
+     * @return string
+     */
+    public function get_menu_icon() {
+        return 'gform-icon--download';
+    }
 }
