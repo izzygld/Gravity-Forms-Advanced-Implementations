@@ -283,4 +283,130 @@ class GF_External_Entry_Export extends GFAddOn {
             ),
         );
     }
-}
+
+    /**
+     * Form settings fields.
+     *
+     * @param array $form Current form.
+     * @return array
+     */
+    public function form_settings_fields( $form ) {
+        $field_choices = $this->get_field_choices( $form );
+
+        return array(
+            array(
+                'title'       => esc_html__( 'External Export Settings', 'gf-external-entry-export' ),
+                'description' => esc_html__( 'Configure which fields are available for external export.', 'gf-external-entry-export' ),
+                'fields'      => array(
+                    array(
+                        'name'    => 'enable_export',
+                        'label'   => esc_html__( 'Enable External Export', 'gf-external-entry-export' ),
+                        'type'    => 'checkbox',
+                        'choices' => array(
+                            array(
+                                'label'         => esc_html__( 'Allow generating external export links for this form', 'gf-external-entry-export' ),
+                                'name'          => 'enable_export',
+                                'default_value' => 0,
+                            ),
+                        ),
+                    ),
+                    array(
+                        'name'       => 'allowed_fields',
+                        'label'      => esc_html__( 'Exportable Fields', 'gf-external-entry-export' ),
+                        'type'       => 'checkbox',
+                        'choices'    => $field_choices,
+                        'tooltip'    => esc_html__( 'Select which fields can be included in external exports.', 'gf-external-entry-export' ),
+                        'dependency' => array(
+                            'live'   => true,
+                            'fields' => array(
+                                array(
+                                    'field' => 'enable_export',
+                                ),
+                            ),
+                        ),
+                    ),
+                    array(
+                        'name'       => 'include_meta',
+                        'label'      => esc_html__( 'Include Entry Metadata', 'gf-external-entry-export' ),
+                        'type'       => 'checkbox',
+                        'choices'    => array(
+                            array(
+                                'label' => esc_html__( 'Entry ID', 'gf-external-entry-export' ),
+                                'name'  => 'include_entry_id',
+                            ),
+                            array(
+                                'label' => esc_html__( 'Date Created', 'gf-external-entry-export' ),
+                                'name'  => 'include_date_created',
+                            ),
+                            array(
+                                'label' => esc_html__( 'Entry Status', 'gf-external-entry-export' ),
+                                'name'  => 'include_status',
+                            ),
+                            array(
+                                'label' => esc_html__( 'Source URL', 'gf-external-entry-export' ),
+                                'name'  => 'include_source_url',
+                            ),
+                            array(
+                                'label' => esc_html__( 'IP Address', 'gf-external-entry-export' ),
+                                'name'  => 'include_ip',
+                            ),
+                        ),
+                        'dependency' => array(
+                            'live'   => true,
+                            'fields' => array(
+                                array(
+                                    'field' => 'enable_export',
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            array(
+                'title'  => esc_html__( 'Filter Settings', 'gf-external-entry-export' ),
+                'fields' => array(
+                    array(
+                        'name'       => 'default_status_filter',
+                        'label'      => esc_html__( 'Default Entry Status', 'gf-external-entry-export' ),
+                        'type'       => 'select',
+                        'choices'    => array(
+                            array( 'label' => esc_html__( 'Active Only', 'gf-external-entry-export' ), 'value' => 'active' ),
+                            array( 'label' => esc_html__( 'All Entries', 'gf-external-entry-export' ), 'value' => 'all' ),
+                            array( 'label' => esc_html__( 'Spam', 'gf-external-entry-export' ), 'value' => 'spam' ),
+                            array( 'label' => esc_html__( 'Trash', 'gf-external-entry-export' ), 'value' => 'trash' ),
+                        ),
+                        'dependency' => array(
+                            'live'   => true,
+                            'fields' => array(
+                                array(
+                                    'field' => 'enable_export',
+                                ),
+                            ),
+                        ),
+                    ),
+                    array(
+                        'name'       => 'allow_date_filter',
+                        'label'      => esc_html__( 'Allow Date Filtering', 'gf-external-entry-export' ),
+                        'type'       => 'checkbox',
+                        'choices'    => array(
+                            array(
+                                'label'         => esc_html__( 'Allow admins to specify date range when generating links', 'gf-external-entry-export' ),
+                                'name'          => 'allow_date_filter',
+                                'default_value' => 1,
+                            ),
+                        ),
+                        'dependency' => array(
+                            'live'   => true,
+                            'fields' => array(
+                                array(
+                                    'field' => 'enable_export',
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        );
+    }
+
+   }
