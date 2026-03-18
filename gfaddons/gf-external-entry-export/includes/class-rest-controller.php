@@ -246,18 +246,13 @@ class GF_EEE_REST_Controller {
             );
         }
 
-        // Validate credentials against form-level username / hashed password
+        // Validate credentials against form-level username / password
         $form          = GFAPI::get_form( $token_data['form_id'] );
         $form_settings = $this->addon->get_form_settings( $form );
         $expected_user = rgar( $form_settings, 'export_username', '' );
-        $password_hash = rgar( $form_settings, 'export_password_hash', '' );
+        $expected_pass = rgar( $form_settings, 'export_password', '' );
 
-        // Legacy fallback: plain-text password that hasn't been migrated yet.
-        if ( empty( $password_hash ) ) {
-            $password_hash = rgar( $form_settings, 'export_password', '' );
-        }
-
-        if ( empty( $expected_user ) || empty( $password_hash ) ) {
+        if ( empty( $expected_user ) || empty( $expected_pass ) ) {
             $this->addon->token_handler->log_access( $token_id, $token_data['form_id'], 'auth_failed', 0, 'No form credentials configured' );
             return new WP_Error(
                 'credentials_not_configured',
@@ -266,9 +261,9 @@ class GF_EEE_REST_Controller {
             );
         }
 
-        // Constant-time username check + password hash verification.
+        // Constant-time username + password comparison.
         $user_ok = hash_equals( $expected_user, $credentials['username'] );
-        $pass_ok = wp_check_password( $credentials['password'], $password_hash );
+        $pass_ok = hash_equals( $expected_pass, $credentials['password'] );
 
         if ( ! $user_ok || ! $pass_ok ) {
             set_transient( $rate_key, $fail_count + 1, 15 * MINUTE_IN_SECONDS );
@@ -328,7 +323,7 @@ class GF_EEE_REST_Controller {
         }
 
         // Sanitize filename for Content-Disposition header (prevent header injection).
-        $safe_filename = preg_replace( '/[\r\n"\\]/', '_', $filename );
+        $safe_filename = preg_replace( '/[\r\n"\\\\]/', '_', $filename );
 
         // Set headers for CSV download
         nocache_headers();

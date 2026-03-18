@@ -189,9 +189,8 @@
             }, function(response) {
                 $btn.prop('disabled', false).text('Regenerate Credentials');
                 if (response.success) {
-                    // Update the username input if visible.
-                    $('input[name="_gform_setting_export_username"]').val(response.data.username);
-                    alert('New credentials generated!\n\nUsername: ' + response.data.username + '\nPassword: ' + response.data.password + '\n\nSave this password now — it will not be shown again.');
+                    $('#gf-eee-cred-username').text(response.data.username);
+                    $('#gf-eee-cred-password').text(response.data.password);
                 } else {
                     alert((response.data && response.data.message) || strings.error);
                 }
