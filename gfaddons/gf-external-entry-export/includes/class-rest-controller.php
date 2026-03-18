@@ -234,13 +234,30 @@ class GF_EEE_REST_Controller {
             );
         }
 
-        // Validate credentials against form-level username/password
+        // ── Rate-limit: block after repeated auth failures ──
+        $rate_key   = 'gf_eee_fail_' . md5( $token_id . '|' . $_SERVER['REMOTE_ADDR'] );
+        $fail_count = (int) get_transient( $rate_key );
+        if ( $fail_count >= 5 ) {
+            $this->addon->token_handler->log_access( $token_id, 0, 'rate_limited' );
+            return new WP_Error(
+                'rate_limited',
+                __( 'Too many failed attempts. Please try again later.', 'gf-external-entry-export' ),
+                array( 'status' => 429 )
+            );
+        }
+
+        // Validate credentials against form-level username / hashed password
         $form          = GFAPI::get_form( $token_data['form_id'] );
         $form_settings = $this->addon->get_form_settings( $form );
         $expected_user = rgar( $form_settings, 'export_username', '' );
-        $expected_pass = rgar( $form_settings, 'export_password', '' );
+        $password_hash = rgar( $form_settings, 'export_password_hash', '' );
 
-        if ( empty( $expected_user ) || empty( $expected_pass ) ) {
+        // Legacy fallback: plain-text password that hasn't been migrated yet.
+        if ( empty( $password_hash ) ) {
+            $password_hash = rgar( $form_settings, 'export_password', '' );
+        }
+
+        if ( empty( $expected_user ) || empty( $password_hash ) ) {
             $this->addon->token_handler->log_access( $token_id, $token_data['form_id'], 'auth_failed', 0, 'No form credentials configured' );
             return new WP_Error(
                 'credentials_not_configured',
@@ -249,7 +266,12 @@ class GF_EEE_REST_Controller {
             );
         }
 
-        if ( ! hash_equals( $expected_user, $credentials['username'] ) || ! hash_equals( $expected_pass, $credentials['password'] ) ) {
+        // Constant-time username check + password hash verification.
+        $user_ok = hash_equals( $expected_user, $credentials['username'] );
+        $pass_ok = wp_check_password( $credentials['password'], $password_hash );
+
+        if ( ! $user_ok || ! $pass_ok ) {
+            set_transient( $rate_key, $fail_count + 1, 15 * MINUTE_IN_SECONDS );
             $this->addon->token_handler->log_access( $token_id, $token_data['form_id'], 'auth_failed', 0, 'Bad credentials' );
             header( 'WWW-Authenticate: Basic realm="GF Export"' );
             return new WP_Error(
@@ -258,6 +280,9 @@ class GF_EEE_REST_Controller {
                 array( 'status' => 401 )
             );
         }
+
+        // Clear rate-limit counter on success.
+        delete_transient( $rate_key );
 
         // Generate export
         $result = $this->addon->export_handler->generate_export(
@@ -302,10 +327,13 @@ class GF_EEE_REST_Controller {
             ob_end_clean();
         }
 
+        // Sanitize filename for Content-Disposition header (prevent header injection).
+        $safe_filename = preg_replace( '/[\r\n"\\]/', '_', $filename );
+
         // Set headers for CSV download
         nocache_headers();
         header( 'Content-Type: text/csv; charset=utf-8' );
-        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+        header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
         header( 'Content-Length: ' . strlen( $content ) );
         header( 'X-Content-Type-Options: nosniff' );
         header( 'X-Robots-Tag: noindex, nofollow' );

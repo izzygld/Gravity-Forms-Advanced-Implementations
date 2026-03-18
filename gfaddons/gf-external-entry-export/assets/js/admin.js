@@ -170,12 +170,35 @@
             revokeLink(tokenId, $(this));
         });
 
-        // Regenerate credentials button
-        $('#gf-eee-regenerate-creds').on('click', function() {
-            var newUser = 'export_' + generateRandomHex(6);
-            var newPass = generateRandomHex(16);
-            $('input[name="_gform_setting_export_username"]').val(newUser);
-            $('input[name="_gform_setting_export_password"]').val(newPass);
+        // Regenerate credentials button — server-side so password is hashed securely
+        $(document).on('click', '#gf-eee-regenerate-creds', function() {
+            if (!confirm('Regenerating will invalidate the current credentials. Any external clients using the old credentials will lose access.\n\nContinue?')) {
+                return;
+            }
+            var formId = isFormScoped ? formScopedId : ($('#gf-eee-form-id').val() || $('input[name="form_id"]').val());
+            if (!formId) {
+                alert('Could not determine form ID.');
+                return;
+            }
+            var $btn = $(this);
+            $btn.prop('disabled', true).text('Regenerating...');
+            $.post(ajaxurl, {
+                action: 'gf_eee_regenerate_creds',
+                nonce: strings.nonce,
+                form_id: formId
+            }, function(response) {
+                $btn.prop('disabled', false).text('Regenerate Credentials');
+                if (response.success) {
+                    // Update the username input if visible.
+                    $('input[name="_gform_setting_export_username"]').val(response.data.username);
+                    alert('New credentials generated!\n\nUsername: ' + response.data.username + '\nPassword: ' + response.data.password + '\n\nSave this password now — it will not be shown again.');
+                } else {
+                    alert((response.data && response.data.message) || strings.error);
+                }
+            }).fail(function() {
+                $btn.prop('disabled', false).text('Regenerate Credentials');
+                alert(strings.error);
+            });
         });
 
         // Generate secret key button

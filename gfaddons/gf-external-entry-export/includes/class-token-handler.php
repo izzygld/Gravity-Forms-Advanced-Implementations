@@ -472,16 +472,20 @@ class GF_EEE_Token_Handler {
         $table = $wpdb->prefix . self::TOKENS_TABLE;
 
         $tokens = $wpdb->get_results(
-            "SELECT t.id, t.token_id, t.form_id, t.fields, t.filters, t.description,
-                    t.created_by, t.created_at, t.expires_at, t.max_downloads,
-                    t.download_count, t.last_download_at, t.is_revoked,
-                    t.client_username, u.display_name as created_by_name
-             FROM {$table} t
-             LEFT JOIN {$wpdb->users} u ON t.created_by = u.ID
-             WHERE t.is_revoked = 0
-               AND (t.expires_at IS NULL OR t.expires_at > NOW())
-               AND (t.max_downloads = 0 OR t.download_count < t.max_downloads)
-             ORDER BY t.created_at DESC",
+            $wpdb->prepare(
+                "SELECT t.id, t.token_id, t.form_id, t.fields, t.filters, t.description,
+                        t.created_by, t.created_at, t.expires_at, t.max_downloads,
+                        t.download_count, t.last_download_at, t.is_revoked,
+                        t.client_username, u.display_name as created_by_name
+                 FROM {$table} t
+                 LEFT JOIN {$wpdb->users} u ON t.created_by = u.ID
+                 WHERE t.is_revoked = %d
+                   AND (t.expires_at IS NULL OR t.expires_at > %s)
+                   AND (t.max_downloads = 0 OR t.download_count < t.max_downloads)
+                 ORDER BY t.created_at DESC",
+                0,
+                current_time( 'mysql', true )
+            ),
             ARRAY_A
         );
 
@@ -533,17 +537,40 @@ class GF_EEE_Token_Handler {
     /**
      * Get visitor IP address.
      *
+     * Only trusts proxy headers (X-Forwarded-For, CF-Connecting-IP) when the
+     * request comes from a known trusted proxy. Falls back to REMOTE_ADDR.
+     *
      * @return string
      */
     private function get_visitor_ip() {
-        $ip_keys = array(
+        // REMOTE_ADDR is always the direct connection and cannot be spoofed.
+        $remote_addr = isset( $_SERVER['REMOTE_ADDR'] )
+            ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
+            : '0.0.0.0';
+
+        /**
+         * Filter the list of trusted proxy IPs/CIDRs.
+         *
+         * If the direct connection (REMOTE_ADDR) is from a trusted proxy,
+         * we read the real client IP from the forwarding headers.
+         *
+         * @param array $trusted_proxies Trusted proxy IP addresses.
+         */
+        $trusted_proxies = apply_filters( 'gf_eee_trusted_proxies', array() );
+
+        if ( empty( $trusted_proxies ) || ! in_array( $remote_addr, $trusted_proxies, true ) ) {
+            // Not behind a trusted proxy — REMOTE_ADDR is the client IP.
+            return filter_var( $remote_addr, FILTER_VALIDATE_IP ) ? $remote_addr : '0.0.0.0';
+        }
+
+        // Trusted proxy — read forwarding headers in priority order.
+        $proxy_keys = array(
             'HTTP_CF_CONNECTING_IP', // Cloudflare
             'HTTP_X_FORWARDED_FOR',
             'HTTP_X_REAL_IP',
-            'REMOTE_ADDR',
         );
 
-        foreach ( $ip_keys as $key ) {
+        foreach ( $proxy_keys as $key ) {
             if ( ! empty( $_SERVER[ $key ] ) ) {
                 $ip = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
                 // Handle comma-separated IPs (X-Forwarded-For)
@@ -556,7 +583,7 @@ class GF_EEE_Token_Handler {
             }
         }
 
-        return '0.0.0.0';
+        return filter_var( $remote_addr, FILTER_VALIDATE_IP ) ? $remote_addr : '0.0.0.0';
     }
 
     /**
@@ -569,8 +596,19 @@ class GF_EEE_Token_Handler {
         $key   = $addon ? $addon->get_plugin_setting( 'secret_key' ) : '';
 
         if ( empty( $key ) ) {
-            // Use WordPress auth keys as fallback
-            $key = defined( 'AUTH_KEY' ) ? AUTH_KEY : wp_generate_password( 64, true, true );
+            // Fallback: derive a stable key from WP auth constants.
+            if ( defined( 'AUTH_KEY' ) && AUTH_KEY !== 'put your unique phrase here' ) {
+                $key = AUTH_KEY;
+            } elseif ( defined( 'SECURE_AUTH_KEY' ) && SECURE_AUTH_KEY !== 'put your unique phrase here' ) {
+                $key = SECURE_AUTH_KEY;
+            } else {
+                // Last resort: generate a persistent key and store it.
+                $key = get_option( 'gf_eee_fallback_secret' );
+                if ( empty( $key ) ) {
+                    $key = bin2hex( random_bytes( 32 ) );
+                    update_option( 'gf_eee_fallback_secret', $key, false );
+                }
+            }
         }
 
         return $key;

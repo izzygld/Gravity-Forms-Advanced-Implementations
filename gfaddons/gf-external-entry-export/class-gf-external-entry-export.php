@@ -201,6 +201,7 @@ class GF_External_Entry_Export extends GFAddOn {
         add_action( 'wp_ajax_gf_eee_generate_link', array( $this, 'ajax_generate_link' ) );
         add_action( 'wp_ajax_gf_eee_revoke_link', array( $this, 'ajax_revoke_link' ) );
         add_action( 'wp_ajax_gf_eee_get_links', array( $this, 'ajax_get_links' ) );
+        add_action( 'wp_ajax_gf_eee_regenerate_creds', array( $this, 'ajax_regenerate_creds' ) );
     }
 
     /**
@@ -371,12 +372,24 @@ class GF_External_Entry_Export extends GFAddOn {
         $export_password   = rgar( $form_settings, 'export_password' );
 
         if ( empty( $export_username ) || empty( $export_password ) ) {
-            $export_username = 'export_' . bin2hex( random_bytes( 6 ) );
-            $export_password = bin2hex( random_bytes( 16 ) );
+            $export_username    = 'export_' . bin2hex( random_bytes( 6 ) );
+            $raw_password       = bin2hex( random_bytes( 16 ) );
 
-            // Persist so they survive page load.
-            $form_settings['export_username'] = $export_username;
-            $form_settings['export_password'] = $export_password;
+            // Store the hash — the raw password is shown once via a transient.
+            $form_settings['export_username']      = $export_username;
+            $form_settings['export_password_hash'] = wp_hash_password( $raw_password );
+            // Remove legacy plaintext key if it exists.
+            unset( $form_settings['export_password'] );
+            $this->save_form_settings( $form, $form_settings );
+
+            // Stash raw password in a short-lived transient so the admin can see it once.
+            set_transient( 'gf_eee_initial_pw_' . $form['id'], $raw_password, 60 );
+        }
+
+        // Migrate legacy plaintext passwords to hashed.
+        if ( ! empty( $form_settings['export_password'] ) && empty( $form_settings['export_password_hash'] ) ) {
+            $form_settings['export_password_hash'] = wp_hash_password( $form_settings['export_password'] );
+            unset( $form_settings['export_password'] );
             $this->save_form_settings( $form, $form_settings );
         }
 
@@ -513,12 +526,19 @@ class GF_External_Entry_Export extends GFAddOn {
                         'tooltip'    => esc_html__( 'The username the external client enters to authenticate.', 'gf-external-entry-export' ),
                     ),
                     array(
-                        'name'       => 'export_password',
-                        'label'      => esc_html__( 'Password', 'gf-external-entry-export' ),
-                        'type'       => 'text',
-                        'class'      => 'medium code',
-                        'tooltip'    => esc_html__( 'The password the external client enters to authenticate.', 'gf-external-entry-export' ),
-                        'after_input' => '<button type="button" class="button" id="gf-eee-regenerate-creds">' . esc_html__( 'Regenerate Credentials', 'gf-external-entry-export' ) . '</button>',
+                        'name'        => 'export_password_hash',
+                        'label'       => esc_html__( 'Password', 'gf-external-entry-export' ),
+                        'type'        => 'html',
+                        'html'        => '<span class="code" style="font-family:monospace;color:#666;">'
+                            . esc_html__( '●●●●●●●●●●●●●●●● (hashed — not retrievable)', 'gf-external-entry-export' )
+                            . '</span> '
+                            . '<button type="button" class="button" id="gf-eee-regenerate-creds">'
+                            . esc_html__( 'Regenerate Credentials', 'gf-external-entry-export' )
+                            . '</button>'
+                            . '<p class="description" style="margin-top:6px;">'
+                            . esc_html__( 'Regenerating will create a new username and password. The new password will be shown once.', 'gf-external-entry-export' )
+                            . '</p>',
+                        'tooltip'     => esc_html__( 'The password is stored as a secure hash. Click Regenerate to create new credentials.', 'gf-external-entry-export' ),
                     ),
                 ),
             ),
@@ -876,8 +896,16 @@ class GF_External_Entry_Export extends GFAddOn {
         }
 
         // Return the form-level credentials (what the external client actually needs).
+        // The password is only available as plaintext immediately after generation
+        // (stored in a short-lived transient) or for legacy un-migrated installs.
         $result['client_username'] = rgar( $form_settings, 'export_username', '' );
-        $result['client_password'] = rgar( $form_settings, 'export_password', '' );
+        $initial_pw = get_transient( 'gf_eee_initial_pw_' . $form_id );
+        if ( $initial_pw ) {
+            $result['client_password'] = $initial_pw;
+        } else {
+            // Legacy plaintext fallback (pre-migration installs).
+            $result['client_password'] = rgar( $form_settings, 'export_password', '' );
+        }
 
         wp_send_json_success( $result );
     }
@@ -907,6 +935,47 @@ class GF_External_Entry_Export extends GFAddOn {
         }
 
         wp_send_json_success( array( 'message' => esc_html__( 'Link revoked successfully.', 'gf-external-entry-export' ) ) );
+    }
+
+    /**
+     * AJAX: Regenerate form-level export credentials.
+     *
+     * Generates a new username/password pair, hashes the password, persists
+     * settings, and returns the raw password to show once.
+     *
+     * @return void
+     */
+    public function ajax_regenerate_creds() {
+        check_ajax_referer( 'gf_eee_admin', 'nonce' );
+
+        if ( ! $this->current_user_can_any( array( 'gf_external_entry_export_form_settings', 'gravityforms_edit_forms', 'manage_options' ) ) ) {
+            wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'gf-external-entry-export' ) ) );
+        }
+
+        $form_id = absint( rgpost( 'form_id' ) );
+        if ( ! $form_id ) {
+            wp_send_json_error( array( 'message' => esc_html__( 'Invalid form ID.', 'gf-external-entry-export' ) ) );
+        }
+
+        $form          = GFAPI::get_form( $form_id );
+        $form_settings = $this->get_form_settings( $form );
+        if ( ! is_array( $form_settings ) ) {
+            $form_settings = array();
+        }
+
+        $new_username    = 'export_' . bin2hex( random_bytes( 6 ) );
+        $raw_password    = bin2hex( random_bytes( 16 ) );
+
+        $form_settings['export_username']      = $new_username;
+        $form_settings['export_password_hash'] = wp_hash_password( $raw_password );
+        unset( $form_settings['export_password'] );
+        $this->save_form_settings( $form, $form_settings );
+
+        wp_send_json_success( array(
+            'username' => $new_username,
+            'password' => $raw_password,
+            'message'  => esc_html__( 'Credentials regenerated. Save the new password — it will not be shown again.', 'gf-external-entry-export' ),
+        ) );
     }
 
     /**
