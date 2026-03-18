@@ -138,19 +138,77 @@ class GF_EEE_REST_Controller {
      */
     public function check_admin_permission() {
         return current_user_can( 'gf_external_entry_export_manage_links' ) ||
-               current_user_can( 'gravityforms_edit_entries' );
+               current_user_can( 'gravityforms_edit_entries' ) ||
+               current_user_can( 'manage_options' );
+    }
+
+    /**
+     * Extract HTTP Basic Auth credentials from the request.
+     *
+     * @return array{username: string, password: string}|null Credentials or null.
+     */
+    private function get_basic_auth_credentials() {
+        $username = null;
+        $password = null;
+
+        // Standard PHP approach
+        if ( isset( $_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'] ) ) {
+            $username = sanitize_text_field( wp_unslash( $_SERVER['PHP_AUTH_USER'] ) );
+            $password = sanitize_text_field( wp_unslash( $_SERVER['PHP_AUTH_PW'] ) );
+        }
+        // Fallback: parse Authorization header (CGI / FastCGI environments)
+        elseif ( isset( $_SERVER['HTTP_AUTHORIZATION'] ) ) {
+            $auth = sanitize_text_field( wp_unslash( $_SERVER['HTTP_AUTHORIZATION'] ) );
+            if ( 0 === stripos( $auth, 'basic ' ) ) {
+                $decoded = base64_decode( substr( $auth, 6 ), true );
+                if ( false !== $decoded && strpos( $decoded, ':' ) !== false ) {
+                    list( $username, $password ) = explode( ':', $decoded, 2 );
+                }
+            }
+        }
+        // Fallback: REDIRECT_HTTP_AUTHORIZATION (some Apache configs)
+        elseif ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ) {
+            $auth = sanitize_text_field( wp_unslash( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) );
+            if ( 0 === stripos( $auth, 'basic ' ) ) {
+                $decoded = base64_decode( substr( $auth, 6 ), true );
+                if ( false !== $decoded && strpos( $decoded, ':' ) !== false ) {
+                    list( $username, $password ) = explode( ':', $decoded, 2 );
+                }
+            }
+        }
+
+        if ( ! empty( $username ) && ! empty( $password ) ) {
+            return array(
+                'username' => $username,
+                'password' => $password,
+            );
+        }
+
+        return null;
     }
 
     /**
      * Handle export request.
      *
      * This is the main public endpoint that external users access.
-     * Authentication is handled via signed tokens, not WordPress login.
+     * Requires both a valid signed token AND HTTP Basic Auth credentials.
      *
      * @param WP_REST_Request $request Request object.
      * @return WP_REST_Response|WP_Error Response or error.
      */
     public function handle_export( $request ) {
+        // ── Strict authentication: HTTP Basic Auth is REQUIRED ──
+        $credentials = $this->get_basic_auth_credentials();
+
+        if ( null === $credentials ) {
+            header( 'WWW-Authenticate: Basic realm="GF Export"' );
+            return new WP_Error(
+                'authentication_required',
+                __( 'Username and password are required to download this export.', 'gf-external-entry-export' ),
+                array( 'status' => 401 )
+            );
+        }
+
         $token_id = $request->get_param( 'gf_eee_export' );
         $token    = rawurldecode( $request->get_param( 'token' ) );
 
@@ -165,7 +223,7 @@ class GF_EEE_REST_Controller {
             }
         }
 
-        // Validate token
+        // Validate token (checks signature, expiration, revocation, download limit, IP allowlist)
         $token_data = $this->addon->token_handler->validate_for_export( $token_id, $token );
 
         if ( is_wp_error( $token_data ) ) {
@@ -173,6 +231,31 @@ class GF_EEE_REST_Controller {
                 $token_data->get_error_code(),
                 $token_data->get_error_message(),
                 array( 'status' => 403 )
+            );
+        }
+
+        // Validate credentials against form-level username/password
+        $form          = GFAPI::get_form( $token_data['form_id'] );
+        $form_settings = $this->addon->get_form_settings( $form );
+        $expected_user = rgar( $form_settings, 'export_username', '' );
+        $expected_pass = rgar( $form_settings, 'export_password', '' );
+
+        if ( empty( $expected_user ) || empty( $expected_pass ) ) {
+            $this->addon->token_handler->log_access( $token_id, $token_data['form_id'], 'auth_failed', 0, 'No form credentials configured' );
+            return new WP_Error(
+                'credentials_not_configured',
+                __( 'Export credentials have not been configured for this form.', 'gf-external-entry-export' ),
+                array( 'status' => 403 )
+            );
+        }
+
+        if ( ! hash_equals( $expected_user, $credentials['username'] ) || ! hash_equals( $expected_pass, $credentials['password'] ) ) {
+            $this->addon->token_handler->log_access( $token_id, $token_data['form_id'], 'auth_failed', 0, 'Bad credentials' );
+            header( 'WWW-Authenticate: Basic realm="GF Export"' );
+            return new WP_Error(
+                'invalid_credentials',
+                __( 'Invalid username or password.', 'gf-external-entry-export' ),
+                array( 'status' => 401 )
             );
         }
 

@@ -44,6 +44,9 @@ class GF_External_Entry_Export_Bootstrap {
         GFForms::include_addon_framework();
 
         // Load dependencies
+        require_once GF_EXTERNAL_ENTRY_EXPORT_PLUGIN_PATH . 'includes/class-token-handler.php';
+        require_once GF_EXTERNAL_ENTRY_EXPORT_PLUGIN_PATH . 'includes/class-export-handler.php';
+        require_once GF_EXTERNAL_ENTRY_EXPORT_PLUGIN_PATH . 'includes/class-rest-controller.php';
         require_once GF_EXTERNAL_ENTRY_EXPORT_PLUGIN_PATH . 'class-gf-external-entry-export.php';
 
         // Register the addon
