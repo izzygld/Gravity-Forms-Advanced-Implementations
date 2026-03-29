@@ -1,6 +1,7 @@
 {
     "name": "izzygld/gf-external-entry-export",
     "description": "Gravity Forms addon for generating secure external entry export links without WordPress admin access",
+    "version": "1.0.1",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
     "authors": [
@@ -14,11 +15,9 @@
         "composer/installers": "^2.0"
     },
     "autoload": {
-        "psr-4": {
-            "GF_External_Entry_Export\\": "includes/"
-        },
         "classmap": [
-            "class-gf-external-entry-export.php"
+            "class-gf-external-entry-export.php",
+            "includes/"
         ]
     },
     "extra": {

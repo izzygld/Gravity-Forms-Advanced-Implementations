@@ -274,7 +274,7 @@ class GF_EEE_Token_Handler {
         $table  = $wpdb->prefix . self::TOKENS_TABLE;
         $record = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE token_id = %s",
+                "SELECT * FROM {$table} WHERE token_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $token_id
             ),
             ARRAY_A
@@ -341,7 +341,7 @@ class GF_EEE_Token_Handler {
         $table  = $wpdb->prefix . self::TOKENS_TABLE;
         $record = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT client_username, client_password_hash FROM {$table} WHERE token_id = %s",
+                "SELECT client_username, client_password_hash FROM {$table} WHERE token_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $token_id
             ),
             ARRAY_A
@@ -380,7 +380,7 @@ class GF_EEE_Token_Handler {
 
         $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$table} SET download_count = download_count + 1, last_download_at = %s WHERE token_id = %s",
+                "UPDATE {$table} SET download_count = download_count + 1, last_download_at = %s WHERE token_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 current_time( 'mysql', true ),
                 $token_id
             )
@@ -388,7 +388,7 @@ class GF_EEE_Token_Handler {
 
         // Get form_id for logging
         $record = $wpdb->get_row(
-            $wpdb->prepare( "SELECT form_id FROM {$table} WHERE token_id = %s", $token_id ),
+            $wpdb->prepare( "SELECT form_id FROM {$table} WHERE token_id = %s", $token_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             ARRAY_A
         );
 
@@ -443,6 +443,7 @@ class GF_EEE_Token_Handler {
 
         $tokens = $wpdb->get_results(
             $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is wpdb->prefix + constant; $where is hardcoded.
                 "SELECT token_id, description, created_at, expires_at, max_downloads, download_count, last_download_at, is_revoked, client_username
                  FROM {$table}
                  {$where}
@@ -473,6 +474,7 @@ class GF_EEE_Token_Handler {
 
         $tokens = $wpdb->get_results(
             $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is wpdb->prefix + constant.
                 "SELECT t.id, t.token_id, t.form_id, t.fields, t.filters, t.description,
                         t.created_by, t.created_at, t.expires_at, t.max_downloads,
                         t.download_count, t.last_download_at, t.is_revoked,
@@ -644,7 +646,7 @@ class GF_EEE_Token_Handler {
         $cutoff   = gmdate( 'Y-m-d H:i:s', time() - ( $days_old * DAY_IN_SECONDS ) );
         $deleted  = $wpdb->query(
             $wpdb->prepare(
-                "DELETE FROM {$table} WHERE expires_at IS NOT NULL AND expires_at < %s",
+                "DELETE FROM {$table} WHERE expires_at IS NOT NULL AND expires_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $cutoff
             )
         );

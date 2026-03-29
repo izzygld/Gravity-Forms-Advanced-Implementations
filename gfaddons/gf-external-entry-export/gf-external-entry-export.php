@@ -3,7 +3,7 @@
  * Plugin Name: GF External Entry Export
  * Plugin URI: https://github.com/izzygld/gf-external-entry-export
  * Description: Generate secure, expiring download links for Gravity Forms entries - no WordPress admin access required for external users.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: izzygld
  * Author URI: https://github.com/izzygld
  * Text Domain: gf-external-entry-export

@@ -235,8 +235,9 @@ class GF_EEE_REST_Controller {
         }
 
         // ── Rate-limit: block after repeated auth failures ──
-        $rate_key   = 'gf_eee_fail_' . md5( $token_id . '|' . $_SERVER['REMOTE_ADDR'] );
-        $fail_count = (int) get_transient( $rate_key );
+        $remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+        $rate_key    = 'gf_eee_fail_' . md5( $token_id . '|' . $remote_addr );
+        $fail_count  = (int) get_transient( $rate_key );
         if ( $fail_count >= 5 ) {
             $this->addon->token_handler->log_access( $token_id, 0, 'rate_limited' );
             return new WP_Error(
