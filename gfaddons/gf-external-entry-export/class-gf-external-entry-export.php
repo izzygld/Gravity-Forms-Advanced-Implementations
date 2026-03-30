@@ -1061,7 +1061,7 @@ class GF_External_Entry_Export extends GFAddOn {
                                         <span style="color:#999;">&#10007; <?php esc_html_e( 'Disabled', 'gf-external-entry-export' ); ?></span>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo count( $active_links ); ?></td>
+                                <td><?php echo (int) count( $active_links ); ?></td>
                                 <td>
                                     <a href="<?php echo esc_url( $settings_url ); ?>" class="button button-small">
                                         <?php esc_html_e( 'Manage Downloads', 'gf-external-entry-export' ); ?>
