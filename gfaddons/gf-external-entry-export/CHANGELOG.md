@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Added**: Add user documentation, submission checklist, and enhance export handler with security improvements (`e29a6fe` - %Y->- (HEAD -> main, origin/main))
 - **Changed**: Merge remote changes: combine changelog entries for WP.org submission prep (`e346116` - %Y->- (HEAD -> main, origin/main))
 ### Added
 - WordPress.org standard `readme.txt` for plugin repository submission
