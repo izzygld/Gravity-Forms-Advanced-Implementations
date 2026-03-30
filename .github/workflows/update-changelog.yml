@@ -1,0 +1,138 @@
+name: Update Changelog
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'gfaddons/gf-external-entry-export/**'
+      - '!gfaddons/gf-external-entry-export/CHANGELOG.md'
+
+permissions:
+  contents: write
+
+jobs:
+  update-changelog:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get commit info
+        id: commit
+        run: |
+          # Get the commit message (first line)
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+          echo "message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+          
+          # Get commit hash (short)
+          COMMIT_HASH=$(git log -1 --pretty=format:"%h")
+          echo "hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+          
+          # Get commit date
+          COMMIT_DATE=$(git log -1 --pretty=format:"%Y-%m-%d")
+          echo "date=$COMMIT_DATE" >> $GITHUB_OUTPUT
+          
+          # Get author
+          COMMIT_AUTHOR=$(git log -1 --pretty=format:"%an")
+          echo "author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+
+      - name: Check if changelog entry already exists
+        id: check
+        run: |
+          CHANGELOG_FILE="gfaddons/gf-external-entry-export/CHANGELOG.md"
+          COMMIT_HASH="${{ steps.commit.outputs.hash }}"
+          
+          if grep -q "$COMMIT_HASH" "$CHANGELOG_FILE" 2>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update CHANGELOG.md
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          CHANGELOG_FILE="gfaddons/gf-external-entry-export/CHANGELOG.md"
+          COMMIT_MSG="${{ steps.commit.outputs.message }}"
+          COMMIT_HASH="${{ steps.commit.outputs.hash }}"
+          COMMIT_DATE="${{ steps.commit.outputs.date }}"
+          
+          # Create changelog if it doesn't exist
+          if [ ! -f "$CHANGELOG_FILE" ]; then
+            cat > "$CHANGELOG_FILE" << 'EOF'
+          # Changelog
+          
+          All notable changes to the GF External Entry Export addon will be documented in this file.
+          
+          ## [Unreleased]
+          
+          EOF
+          fi
+          
+          # Categorize commit based on conventional commit prefixes or keywords
+          CATEGORY="Changed"
+          if echo "$COMMIT_MSG" | grep -iE "^(feat|add|new):" > /dev/null; then
+            CATEGORY="Added"
+          elif echo "$COMMIT_MSG" | grep -iE "^(fix|bug|patch):" > /dev/null; then
+            CATEGORY="Fixed"
+          elif echo "$COMMIT_MSG" | grep -iE "^(security|sec):" > /dev/null; then
+            CATEGORY="Security"
+          elif echo "$COMMIT_MSG" | grep -iE "^(docs|doc):" > /dev/null; then
+            CATEGORY="Documentation"
+          elif echo "$COMMIT_MSG" | grep -iE "^(refactor|chore|style):" > /dev/null; then
+            CATEGORY="Changed"
+          elif echo "$COMMIT_MSG" | grep -iE "^(deprecate|remove):" > /dev/null; then
+            CATEGORY="Deprecated"
+          fi
+          
+          # Clean up commit message (remove conventional commit prefix)
+          CLEAN_MSG=$(echo "$COMMIT_MSG" | sed -E 's/^(feat|fix|docs|style|refactor|test|chore|security|add|new|bug|patch|sec|doc|deprecate|remove)(\([^)]*\))?:\s*//i')
+          
+          # Create the new entry
+          NEW_ENTRY="- **$CATEGORY**: $CLEAN_MSG (\`$COMMIT_HASH\` - $COMMIT_DATE)"
+          
+          # Insert the new entry after "[Unreleased]" line
+          if grep -q "\[Unreleased\]" "$CHANGELOG_FILE"; then
+            # Use awk to insert after [Unreleased] section header
+            awk -v entry="$NEW_ENTRY" '
+              /\[Unreleased\]/ {
+                print
+                getline
+                if ($0 ~ /^$/) {
+                  print ""
+                  print entry
+                } else {
+                  print entry
+                  print ""
+                  print
+                }
+                next
+              }
+              {print}
+            ' "$CHANGELOG_FILE" > "${CHANGELOG_FILE}.tmp"
+            mv "${CHANGELOG_FILE}.tmp" "$CHANGELOG_FILE"
+          else
+            # Append to end if no Unreleased section
+            echo "" >> "$CHANGELOG_FILE"
+            echo "$NEW_ENTRY" >> "$CHANGELOG_FILE"
+          fi
+
+      - name: Commit and push changelog
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add gfaddons/gf-external-entry-export/CHANGELOG.md
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changelog changes to commit"
+          else
+            git commit -m "docs: Auto-update changelog for ${{ steps.commit.outputs.hash }}"
+            git push
+          fi
