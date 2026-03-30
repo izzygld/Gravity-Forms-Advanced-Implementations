@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Changed**: Merge remote changes: combine changelog entries for WP.org submission prep (`e346116` - %Y->- (HEAD -> main, origin/main))
 ### Added
 - WordPress.org standard `readme.txt` for plugin repository submission
 - Directory listing protection (`index.php` files in all directories)
