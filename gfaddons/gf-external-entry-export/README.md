@@ -408,6 +408,11 @@ This addon is provided as-is for educational and demonstration purposes. For pro
 
 ## Changelog
 
+### 1.0.1
+- **Security**: Fixed rate limiting to properly sanitize and validate `REMOTE_ADDR` server variable
+- **Code Quality**: Added PHPCS inline comments for legitimate prepared SQL queries using safe table name interpolation
+- **UX**: Added admin notice and auto-deactivation when Gravity Forms is not active
+
 ### 1.0.0
 - Initial release
 - Core token generation and validation

@@ -16,10 +16,63 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'GF_EXTERNAL_ENTRY_EXPORT_VERSION', '1.0.0' );
+define( 'GF_EXTERNAL_ENTRY_EXPORT_VERSION', '1.0.1' );
 define( 'GF_EXTERNAL_ENTRY_EXPORT_MIN_GF_VERSION', '2.5' );
 define( 'GF_EXTERNAL_ENTRY_EXPORT_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GF_EXTERNAL_ENTRY_EXPORT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+
+/**
+ * Check if Gravity Forms is active.
+ *
+ * Shows admin notice and deactivates plugin if GF is not available.
+ */
+function gf_eee_check_gravity_forms_dependency() {
+    // Check if Gravity Forms is active
+    if ( ! class_exists( 'GFForms' ) ) {
+        add_action( 'admin_notices', 'gf_eee_missing_gravity_forms_notice' );
+        add_action( 'admin_init', 'gf_eee_deactivate_self' );
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Display admin notice when Gravity Forms is missing.
+ */
+function gf_eee_missing_gravity_forms_notice() {
+    ?>
+    <div class="notice notice-error is-dismissible">
+        <p>
+            <strong><?php esc_html_e( 'GF External Entry Export', 'gf-external-entry-export' ); ?>:</strong>
+            <?php
+            printf(
+                /* translators: %s: Gravity Forms plugin name */
+                esc_html__( 'This plugin requires %s to be installed and activated. The plugin has been deactivated.', 'gf-external-entry-export' ),
+                '<strong>Gravity Forms</strong>'
+            );
+            ?>
+        </p>
+    </div>
+    <?php
+}
+
+/**
+ * Deactivate this plugin if Gravity Forms is not active.
+ */
+function gf_eee_deactivate_self() {
+    // Only deactivate if we're in admin and the plugin is active
+    if ( is_admin() && current_user_can( 'activate_plugins' ) ) {
+        deactivate_plugins( plugin_basename( __FILE__ ) );
+
+        // Remove the "Plugin activated" notice
+        if ( isset( $_GET['activate'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            unset( $_GET['activate'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        }
+    }
+}
+
+// Run dependency check on plugins_loaded (before gform_loaded)
+add_action( 'plugins_loaded', 'gf_eee_check_gravity_forms_dependency', 1 );
 
 /**
  * Bootstrap class for GF External Entry Export addon.
