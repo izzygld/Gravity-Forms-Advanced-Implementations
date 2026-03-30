@@ -11,10 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WordPress.org standard `readme.txt` for plugin repository submission
 - Directory listing protection (`index.php` files in all directories)
 - Languages folder structure for translations
+- Automated changelog update workflow
 
 ### Changed
 - Improved output escaping for active links count display
 - Updated author info in composer.json
+- Updated README to reference CHANGELOG.md
 
 <!-- New entries will be automatically added here by GitHub Actions -->
 
