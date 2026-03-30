@@ -13,6 +13,10 @@ defined( 'ABSPATH' ) || exit;
  * GF_EEE_Token_Handler class.
  *
  * Manages cryptographically secure export tokens with expiration and revocation.
+ * Uses custom database tables for token storage - direct queries are intentional and necessary.
+ *
+ * @phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
+ * @phpcs:disable WordPress.DB.DirectDatabaseQuery.NoCaching
  */
 class GF_EEE_Token_Handler {
 
@@ -436,22 +440,31 @@ class GF_EEE_Token_Handler {
 
         $table = $wpdb->prefix . self::TOKENS_TABLE;
 
-        $where = 'WHERE form_id = %d';
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is wpdb->prefix + constant.
         if ( $active_only ) {
-            $where .= ' AND is_revoked = 0 AND (expires_at IS NULL OR expires_at > NOW())';
+            $tokens = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT token_id, description, created_at, expires_at, max_downloads, download_count, last_download_at, is_revoked, client_username
+                     FROM {$table}
+                     WHERE form_id = %d AND is_revoked = 0 AND (expires_at IS NULL OR expires_at > NOW())
+                     ORDER BY created_at DESC",
+                    $form_id
+                ),
+                ARRAY_A
+            );
+        } else {
+            $tokens = $wpdb->get_results(
+                $wpdb->prepare(
+                    "SELECT token_id, description, created_at, expires_at, max_downloads, download_count, last_download_at, is_revoked, client_username
+                     FROM {$table}
+                     WHERE form_id = %d
+                     ORDER BY created_at DESC",
+                    $form_id
+                ),
+                ARRAY_A
+            );
         }
-
-        $tokens = $wpdb->get_results(
-            $wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is wpdb->prefix + constant; $where is hardcoded.
-                "SELECT token_id, description, created_at, expires_at, max_downloads, download_count, last_download_at, is_revoked, client_username
-                 FROM {$table}
-                 {$where}
-                 ORDER BY created_at DESC",
-                $form_id
-            ),
-            ARRAY_A
-        );
+        // phpcs:enable
 
         // Add form title and user info
         $form = GFAPI::get_form( $form_id );
@@ -472,9 +485,11 @@ class GF_EEE_Token_Handler {
 
         $table = $wpdb->prefix . self::TOKENS_TABLE;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table for token management; caching not appropriate for token validation.
         $tokens = $wpdb->get_results(
             $wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is wpdb->prefix + constant.
+                // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                // Table names are wpdb->prefix + constant or wpdb property.
                 "SELECT t.id, t.token_id, t.form_id, t.fields, t.filters, t.description,
                         t.created_by, t.created_at, t.expires_at, t.max_downloads,
                         t.download_count, t.last_download_at, t.is_revoked,
@@ -485,6 +500,7 @@ class GF_EEE_Token_Handler {
                    AND (t.expires_at IS NULL OR t.expires_at > %s)
                    AND (t.max_downloads = 0 OR t.download_count < t.max_downloads)
                  ORDER BY t.created_at DESC",
+                // phpcs:enable
                 0,
                 current_time( 'mysql', true )
             ),
@@ -520,6 +536,7 @@ class GF_EEE_Token_Handler {
 
         $table = $wpdb->prefix . self::LOGS_TABLE;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom logging table; write-only operation.
         $wpdb->insert(
             $table,
             array(
@@ -644,6 +661,7 @@ class GF_EEE_Token_Handler {
 
         $table    = $wpdb->prefix . self::TOKENS_TABLE;
         $cutoff   = gmdate( 'Y-m-d H:i:s', time() - ( $days_old * DAY_IN_SECONDS ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation on custom table.
         $deleted  = $wpdb->query(
             $wpdb->prepare(
                 "DELETE FROM {$table} WHERE expires_at IS NOT NULL AND expires_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared

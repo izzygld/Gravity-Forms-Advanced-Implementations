@@ -1095,11 +1095,13 @@ class GF_External_Entry_Export extends GFAddOn {
 
         // Remove tokens table
         $table_name = $wpdb->prefix . 'gf_eee_tokens';
-        $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Uninstall cleanup of plugin's custom table; table name is wpdb->prefix + hardcoded string.
+        $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" );
 
         // Remove logs table
         $logs_table = $wpdb->prefix . 'gf_eee_access_logs';
-        $wpdb->query( "DROP TABLE IF EXISTS {$logs_table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Uninstall cleanup of plugin's custom table; table name is wpdb->prefix + hardcoded string.
+        $wpdb->query( "DROP TABLE IF EXISTS {$logs_table}" );
 
         // Remove options
         delete_option( 'gf_eee_db_version' );

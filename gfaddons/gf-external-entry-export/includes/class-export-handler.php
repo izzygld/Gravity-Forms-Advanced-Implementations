@@ -239,9 +239,11 @@ class GF_EEE_Export_Handler {
      * @return string CSV content.
      */
     private function generate_csv( $entries, $field_map, $form, $filters ) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Using php://temp memory stream, not filesystem.
         $output = fopen( 'php://temp', 'r+' );
 
         // BOM for Excel UTF-8 compatibility
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Writing to memory stream.
         fwrite( $output, "\xEF\xBB\xBF" );
 
         // Header row
@@ -278,6 +280,7 @@ class GF_EEE_Export_Handler {
         // Get content
         rewind( $output );
         $csv_content = stream_get_contents( $output );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closing memory stream.
         fclose( $output );
 
         /**

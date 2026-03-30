@@ -70,9 +70,7 @@ zip -r gf-external-entry-export.zip gf-external-entry-export \
   -x "*/.git/*" \
   -x "*/node_modules/*" \
   -x "*composer.lock" \
-  -x "*SHOWCASE.md" \
-  -x "*EXTERNAL-USER-GUIDE.md" \
-  -x "*SUBMISSION-CHECKLIST.md"
+  -x "*/docs/*"
 ```
 
 ### Step 3: Submit to WordPress.org
@@ -117,10 +115,7 @@ These files should NOT be included in the WordPress.org SVN:
 - `.git/`
 - `composer.json` (optional, some include it)
 - `composer.lock`
-- `SHOWCASE.md`
-- `EXTERNAL-USER-GUIDE.md`
-- `SUBMISSION-CHECKLIST.md`
-- `*.md` (except README.md if you want)
+- `docs/` folder (contains SHOWCASE.md, EXTERNAL-USER-GUIDE.md, SUBMISSION-CHECKLIST.md)
 
 ---
 
