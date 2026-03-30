@@ -4,12 +4,15 @@
 
 ### Share Gravity Forms data securely — without giving away admin access
 
+[![WordPress.org](https://img.shields.io/badge/WordPress.org-Pending%20Review-yellow.svg)](https://wordpress.org/plugins/)
 [![WordPress](https://img.shields.io/badge/WordPress-5.8+-blue.svg)](https://wordpress.org/)
 [![Gravity Forms](https://img.shields.io/badge/Gravity%20Forms-2.5+-orange.svg)](https://www.gravityforms.com/)
 [![PHP](https://img.shields.io/badge/PHP-7.4+-purple.svg)](https://php.net/)
 [![License](https://img.shields.io/badge/License-GPL--2.0+-green.svg)](LICENSE)
 
 </div>
+
+> **Note:** This plugin has been submitted to the WordPress.org Plugin Directory and is awaiting review (submitted March 30, 2026).
 
 ---
 

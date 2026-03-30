@@ -2,3 +2,10 @@
 gfaddons/app/
 gfaddons/conf/
 gfaddons/logs/
+gravityforms
+
+# macOS
+.DS_Store
+
+# Build artifacts
+*.zip
