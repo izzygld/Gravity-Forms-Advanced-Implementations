@@ -1,81 +1,85 @@
 <?php
 /**
- * Token Handler for GF External Entry Export.
+ * Token Controller for GF External Entry Export
  *
- * Handles secure token generation, validation, and lifecycle management.
+ * handles all the token generaton, validation, and lifecycle managment
+ * basically the brains of the secure link system
  *
  * @package GF_External_Entry_Export
  */
 
+// dont let ppl access directly
 defined( 'ABSPATH' ) || exit;
 
 /**
- * GF_EEE_Token_Handler class.
+ * GF_EEE_TOKEN_CONTROLLER class
  *
- * Manages cryptographically secure export tokens with expiration and revocation.
- * Uses custom database tables for token storage - direct queries are intentional and necessary.
+ * manages cryptographically secure export tokens with expiraton and revocation
+ * uses custom database tables for token storage - direct querys are intentional
  *
  * @phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
  * @phpcs:disable WordPress.DB.DirectDatabaseQuery.NoCaching
  */
-class GF_EEE_Token_Handler {
+class GF_EEE_TOKEN_CONTROLLER {
 
     /**
-     * Database version.
+     * database version number
      *
      * @var string
      */
     const DB_VERSION = '1.1.0';
 
     /**
-     * Tokens table name (without prefix).
+     * tokens table name without the prefix
      *
      * @var string
      */
     const TOKENS_TABLE = 'gf_eee_tokens';
 
     /**
-     * Access logs table name (without prefix).
+     * access logs table name without the prefix
      *
      * @var string
      */
     const LOGS_TABLE = 'gf_eee_access_logs';
 
     /**
-     * Constructor.
+     * constructor - sets up da tables if needed
      */
     public function __construct() {
-        $this->maybe_create_tables();
+        $this->maybe_setup_tables();
     }
 
     /**
-     * Create database tables if needed.
+     * checkin if we need to create the databse tables
+     * if the version dont match we run the setup
      *
      * @return void
      */
-    public function maybe_create_tables() {
-        $installed_version = get_option( 'gf_eee_db_version' );
+    public function maybe_setup_tables() {
+        $installed_ver = get_option( 'gf_eee_db_version' );
 
-        if ( $installed_version !== self::DB_VERSION ) {
-            $this->create_tables();
+        if ( $installed_ver !== self::DB_VERSION ) {
+            $this->setup_da_tables();
             update_option( 'gf_eee_db_version', self::DB_VERSION );
         }
     }
 
     /**
-     * Create required database tables.
+     * creatin our custom database tables
+     * this runs the sql to set up tokens and logs tables
      *
      * @return void
      */
-    private function create_tables() {
+    private function setup_da_tables() {
         global $wpdb;
 
-        $charset_collate = $wpdb->get_charset_collate();
+        $da_charset_collate = $wpdb->get_charset_collate();
 
-        $tokens_table = $wpdb->prefix . self::TOKENS_TABLE;
-        $logs_table   = $wpdb->prefix . self::LOGS_TABLE;
+        $da_tokens_table = $wpdb->prefix . self::TOKENS_TABLE;
+        $da_logs_table   = $wpdb->prefix . self::LOGS_TABLE;
 
-        $sql = "CREATE TABLE {$tokens_table} (
+        $da_sql = "CREATE TABLE {$da_tokens_table} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             token_id varchar(64) NOT NULL,
             token_hash varchar(128) NOT NULL,
@@ -100,9 +104,9 @@ class GF_EEE_Token_Handler {
             KEY created_by (created_by),
             KEY expires_at (expires_at),
             KEY is_revoked (is_revoked)
-        ) {$charset_collate};
+        ) {$da_charset_collate};
 
-        CREATE TABLE {$logs_table} (
+        CREATE TABLE {$da_logs_table} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             token_id varchar(64) NOT NULL,
             form_id bigint(20) unsigned NOT NULL,
@@ -117,253 +121,259 @@ class GF_EEE_Token_Handler {
             KEY form_id (form_id),
             KEY accessed_at (accessed_at),
             KEY status (status)
-        ) {$charset_collate};";
+        ) {$da_charset_collate};";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        dbDelta( $sql );
+        dbDelta( $da_sql );
     }
 
     /**
-     * Generate a secure export token.
+     * makin da token - generates a secure export token
+     * this is the main function for creatin new download links
      *
-     * @param array $data       Token data (form_id, fields, filters, etc.).
-     * @param int   $expiration Expiration in hours (0 for never).
-     * @return array|WP_Error Token info or error.
+     * @param array $da_data       token data (form_id, fields, filters, etc)
+     * @param int   $da_expiration expiration in hours (0 for never)
+     * @return array|WP_Error token info or error
      */
-    public function generate_token( $data, $expiration = 24 ) {
+    public function make_da_token( $da_data, $da_expiration = 24 ) {
         global $wpdb;
 
-        // Validate required data
-        if ( empty( $data['form_id'] ) ) {
+        // gotta have a form id
+        if ( empty( $da_data['form_id'] ) ) {
             return new WP_Error( 'missing_form_id', __( 'Form ID is required.', 'gf-external-entry-export' ) );
         }
 
-        // Generate secure token
-        $token_id = $this->generate_secure_token_id();
-        $secret   = $this->get_secret_key();
-        $token    = $this->sign_token( $token_id, $data['form_id'], $secret );
+        // generatin the secure token stuff
+        $da_token_id = $this->make_secure_token_id();
+        $da_secret   = $this->grab_secret_key();
+        $da_token    = $this->sign_da_token( $da_token_id, $da_data['form_id'], $da_secret );
 
-        // Prepare filters
-        $filters = array(
-            'start_date' => ! empty( $data['start_date'] ) ? sanitize_text_field( $data['start_date'] ) : null,
-            'end_date'   => ! empty( $data['end_date'] ) ? sanitize_text_field( $data['end_date'] ) : null,
-            'status'     => ! empty( $data['status'] ) ? sanitize_text_field( $data['status'] ) : 'active',
+        // settin up the filters
+        $da_filters = array(
+            'start_date' => ! empty( $da_data['start_date'] ) ? sanitize_text_field( $da_data['start_date'] ) : null,
+            'end_date'   => ! empty( $da_data['end_date'] ) ? sanitize_text_field( $da_data['end_date'] ) : null,
+            'status'     => ! empty( $da_data['status'] ) ? sanitize_text_field( $da_data['status'] ) : 'active',
         );
 
-        // Calculate expiration
-        $expires_at = null;
-        if ( $expiration > 0 ) {
-            $expires_at = gmdate( 'Y-m-d H:i:s', time() + ( $expiration * HOUR_IN_SECONDS ) );
+        // figurin out when it expires
+        $expiring_duedate = null;
+        if ( $da_expiration > 0 ) {
+            $expiring_duedate = gmdate( 'Y-m-d H:i:s', time() + ( $da_expiration * HOUR_IN_SECONDS ) );
         }
 
-        // Get max downloads from settings
-        $addon        = gf_external_entry_export();
-        $max_downloads = $addon ? absint( $addon->get_plugin_setting( 'max_downloads' ) ) : 10;
+        // gettin max downloads from settings
+        $da_addon        = gf_eee_get_da_addon();
+        $da_max_downloads = $da_addon ? absint( $da_addon->get_plugin_setting( 'max_downloads' ) ) : 10;
 
-        // Per-link client credentials (legacy columns, kept for DB compat).
-        $client_username = 'link_' . $token_id;
-        $client_password = bin2hex( random_bytes( 16 ) );
-        $password_hash   = wp_hash_password( $client_password );
+        // per-link client credentials (legacy columns, kept for DB compat)
+        $da_client_username = 'link_' . $da_token_id;
+        $da_client_password = bin2hex( random_bytes( 16 ) );
+        $da_password_hash   = wp_hash_password( $da_client_password );
 
-        // Insert token record
-        $table  = $wpdb->prefix . self::TOKENS_TABLE;
-        $result = $wpdb->insert(
-            $table,
+        // insertin the token record into the db
+        $da_table  = $wpdb->prefix . self::TOKENS_TABLE;
+        $da_result = $wpdb->insert(
+            $da_table,
             array(
-                'token_id'             => $token_id,
-                'token_hash'           => hash( 'sha256', $token ),
-                'form_id'              => absint( $data['form_id'] ),
-                'fields'               => wp_json_encode( $data['fields'] ?? array() ),
-                'filters'              => wp_json_encode( $filters ),
-                'description'          => sanitize_text_field( $data['description'] ?? '' ),
-                'created_by'           => absint( $data['created_by'] ?? get_current_user_id() ),
+                'token_id'             => $da_token_id,
+                'token_hash'           => hash( 'sha256', $da_token ),
+                'form_id'              => absint( $da_data['form_id'] ),
+                'fields'               => wp_json_encode( $da_data['fields'] ?? array() ),
+                'filters'              => wp_json_encode( $da_filters ),
+                'description'          => sanitize_text_field( $da_data['description'] ?? '' ),
+                'created_by'           => absint( $da_data['created_by'] ?? get_current_user_id() ),
                 'created_at'           => current_time( 'mysql', true ),
-                'expires_at'           => $expires_at,
-                'max_downloads'        => $max_downloads,
-                'client_username'      => $client_username,
-                'client_password_hash' => $password_hash,
+                'expires_at'           => $expiring_duedate,
+                'max_downloads'        => $da_max_downloads,
+                'client_username'      => $da_client_username,
+                'client_password_hash' => $da_password_hash,
             ),
             array( '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s' )
         );
 
-        if ( false === $result ) {
+        if ( false === $da_result ) {
             return new WP_Error( 'db_error', __( 'Failed to create export token.', 'gf-external-entry-export' ) );
         }
 
-        // Build export URL
-        $export_url = $this->get_export_url( $token_id, $token );
+        // buildin the export url
+        $da_export_url = $this->make_export_url( $da_token_id, $da_token );
 
         return array(
-            'token_id'   => $token_id,
-            'url'        => $export_url,
-            'expires_at' => $expires_at,
-            'form_id'    => $data['form_id'],
+            'token_id'   => $da_token_id,
+            'url'        => $da_export_url,
+            'expires_at' => $expiring_duedate,
+            'form_id'    => $da_data['form_id'],
         );
     }
 
     /**
-     * Generate a cryptographically secure token ID.
+     * generatin a cryptographically secure token id
+     * just random bytes converted to hex
      *
      * @return string
      */
-    private function generate_secure_token_id() {
+    private function make_secure_token_id() {
         return bin2hex( random_bytes( 16 ) );
     }
 
     /**
-     * Sign a token with HMAC.
+     * signin da token with HMAC
+     * makes it so we can verify the token later
      *
-     * @param string $token_id Token ID.
-     * @param int    $form_id  Form ID.
-     * @param string $secret   Secret key.
-     * @return string Signed token.
+     * @param string $da_token_id token id
+     * @param int    $da_form_id  form id
+     * @param string $da_secret   secret key
+     * @return string signed token
      */
-    private function sign_token( $token_id, $form_id, $secret ) {
-        $payload   = $token_id . '|' . $form_id;
-        $signature = hash_hmac( 'sha256', $payload, $secret );
-        return base64_encode( $payload . '|' . $signature );
+    private function sign_da_token( $da_token_id, $da_form_id, $da_secret ) {
+        $da_payload   = $da_token_id . '|' . $da_form_id;
+        $da_signature = hash_hmac( 'sha256', $da_payload, $da_secret );
+        return base64_encode( $da_payload . '|' . $da_signature );
     }
 
     /**
-     * Verify and decode a signed token.
+     * verifyin and decodin a signed token
+     * checks if the signature matches
      *
-     * @param string $token Signed token.
-     * @return array|false Token parts or false if invalid.
+     * @param string $da_token signed token
+     * @return array|false token parts or false if invalid
      */
-    public function verify_token( $token ) {
-        $decoded = base64_decode( $token, true );
-        if ( false === $decoded ) {
+    public function token_validation( $da_token ) {
+        $da_decoded = base64_decode( $da_token, true );
+        if ( false === $da_decoded ) {
             return false;
         }
 
-        $parts = explode( '|', $decoded );
-        if ( count( $parts ) !== 3 ) {
+        $da_parts = explode( '|', $da_decoded );
+        if ( count( $da_parts ) !== 3 ) {
             return false;
         }
 
-        list( $token_id, $form_id, $signature ) = $parts;
+        list( $da_token_id, $da_form_id, $da_signature ) = $da_parts;
 
-        // Verify signature
-        $secret            = $this->get_secret_key();
-        $expected_signature = hash_hmac( 'sha256', $token_id . '|' . $form_id, $secret );
+        // verifyin the signature matches
+        $da_secret            = $this->grab_secret_key();
+        $da_expected_signature = hash_hmac( 'sha256', $da_token_id . '|' . $da_form_id, $da_secret );
 
-        if ( ! hash_equals( $expected_signature, $signature ) ) {
+        if ( ! hash_equals( $da_expected_signature, $da_signature ) ) {
             return false;
         }
 
         return array(
-            'token_id' => $token_id,
-            'form_id'  => absint( $form_id ),
+            'token_id' => $da_token_id,
+            'form_id'  => absint( $da_form_id ),
         );
     }
 
     /**
-     * Validate a token for export access.
+     * validatin a token for export access
+     * checks all the things like expirton, revocation, download limits
      *
-     * @param string $token_id Token ID.
-     * @param string $token    Full signed token.
-     * @return array|WP_Error Token data or error.
+     * @param string $da_token_id token id
+     * @param string $da_token    full signed token
+     * @return array|WP_Error token data or error
      */
-    public function validate_for_export( $token_id, $token ) {
+    public function check_export_allowed( $da_token_id, $da_token ) {
         global $wpdb;
 
-        // Verify token signature
-        $verified = $this->verify_token( $token );
-        if ( false === $verified || $verified['token_id'] !== $token_id ) {
-            $this->log_access( $token_id, 0, 'invalid_signature' );
+        // verifyin token signature first
+        $da_verified = $this->token_validation( $da_token );
+        if ( false === $da_verified || $da_verified['token_id'] !== $da_token_id ) {
+            $this->log_da_access( $da_token_id, 0, 'invalid_signature' );
             return new WP_Error( 'invalid_token', __( 'Invalid export token.', 'gf-external-entry-export' ) );
         }
 
-        // Get token record
-        $table  = $wpdb->prefix . self::TOKENS_TABLE;
-        $record = $wpdb->get_row(
+        // gettin the token record from db
+        $da_table  = $wpdb->prefix . self::TOKENS_TABLE;
+        $da_record = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM {$table} WHERE token_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                $token_id
+                "SELECT * FROM {$da_table} WHERE token_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $da_token_id
             ),
             ARRAY_A
         );
 
-        if ( ! $record ) {
-            $this->log_access( $token_id, 0, 'not_found' );
+        if ( ! $da_record ) {
+            $this->log_da_access( $da_token_id, 0, 'not_found' );
             return new WP_Error( 'token_not_found', __( 'Export token not found.', 'gf-external-entry-export' ) );
         }
 
-        // Check if revoked
-        if ( ! empty( $record['is_revoked'] ) ) {
-            $this->log_access( $token_id, $record['form_id'], 'revoked' );
+        // checkin if its been revoked
+        if ( ! empty( $da_record['is_revoked'] ) ) {
+            $this->log_da_access( $da_token_id, $da_record['form_id'], 'revoked' );
             return new WP_Error( 'token_revoked', __( 'This export link has been revoked.', 'gf-external-entry-export' ) );
         }
 
-        // Check expiration
-        if ( ! empty( $record['expires_at'] ) ) {
-            $expires = strtotime( $record['expires_at'] );
-            if ( time() > $expires ) {
-                $this->log_access( $token_id, $record['form_id'], 'expired' );
+        // checkin if its expired
+        if ( ! empty( $da_record['expires_at'] ) ) {
+            $da_expires = strtotime( $da_record['expires_at'] );
+            if ( time() > $da_expires ) {
+                $this->log_da_access( $da_token_id, $da_record['form_id'], 'expired' );
                 return new WP_Error( 'token_expired', __( 'This export link has expired.', 'gf-external-entry-export' ) );
             }
         }
 
-        // Check download limit
-        if ( ! empty( $record['max_downloads'] ) && $record['download_count'] >= $record['max_downloads'] ) {
-            $this->log_access( $token_id, $record['form_id'], 'limit_exceeded' );
+        // checkin download limit
+        if ( ! empty( $da_record['max_downloads'] ) && $da_record['download_count'] >= $da_record['max_downloads'] ) {
+            $this->log_da_access( $da_token_id, $da_record['form_id'], 'limit_exceeded' );
             return new WP_Error( 'download_limit', __( 'Download limit exceeded for this link.', 'gf-external-entry-export' ) );
         }
 
-        // Check IP allowlist
-        $addon = gf_external_entry_export();
-        if ( $addon ) {
-            $allowed_ips = $addon->get_plugin_setting( 'allowed_ips' );
-            if ( ! empty( $allowed_ips ) ) {
-                $ip_list    = array_filter( array_map( 'trim', explode( "\n", $allowed_ips ) ) );
-                $visitor_ip = $this->get_visitor_ip();
-                if ( ! in_array( $visitor_ip, $ip_list, true ) ) {
-                    $this->log_access( $token_id, $record['form_id'], 'ip_blocked', 0, __( 'IP not in allowlist', 'gf-external-entry-export' ) );
+        // checkin ip allowlist
+        $da_addon = gf_eee_get_da_addon();
+        if ( $da_addon ) {
+            $da_allowed_ips = $da_addon->get_plugin_setting( 'allowed_ips' );
+            if ( ! empty( $da_allowed_ips ) ) {
+                $da_ip_list    = array_filter( array_map( 'trim', explode( "\n", $da_allowed_ips ) ) );
+                $da_visitor_ip = $this->grab_user_ip();
+                if ( ! in_array( $da_visitor_ip, $da_ip_list, true ) ) {
+                    $this->log_da_access( $da_token_id, $da_record['form_id'], 'ip_blocked', 0, __( 'IP not in allowlist', 'gf-external-entry-export' ) );
                     return new WP_Error( 'ip_blocked', __( 'Access denied.', 'gf-external-entry-export' ) );
                 }
             }
         }
 
-        // Decode stored data
-        $record['fields']  = json_decode( $record['fields'], true ) ?: array();
-        $record['filters'] = json_decode( $record['filters'], true ) ?: array();
+        // decodin stored data
+        $da_record['fields']  = json_decode( $da_record['fields'], true ) ?: array();
+        $da_record['filters'] = json_decode( $da_record['filters'], true ) ?: array();
 
-        return $record;
+        return $da_record;
     }
 
     /**
-     * Validate client credentials for export access.
+     * validatin client credentials for export access
+     * checks username and password against whats in the db
      *
-     * @param string $token_id Token ID.
-     * @param string $username Client username.
-     * @param string $password Client password (plain text).
-     * @return true|WP_Error True on success or error.
+     * @param string $da_token_id token id
+     * @param string $da_username client username
+     * @param string $da_password client password (plain text)
+     * @return true|WP_Error true on success or error
      */
-    public function validate_credentials( $token_id, $username, $password ) {
+    public function check_creds_valid( $da_token_id, $da_username, $da_password ) {
         global $wpdb;
 
-        $table  = $wpdb->prefix . self::TOKENS_TABLE;
-        $record = $wpdb->get_row(
+        $da_table  = $wpdb->prefix . self::TOKENS_TABLE;
+        $da_record = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT client_username, client_password_hash FROM {$table} WHERE token_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                $token_id
+                "SELECT client_username, client_password_hash FROM {$da_table} WHERE token_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $da_token_id
             ),
             ARRAY_A
         );
 
-        if ( ! $record ) {
+        if ( ! $da_record ) {
             return new WP_Error( 'invalid_credentials', __( 'Invalid credentials.', 'gf-external-entry-export' ) );
         }
 
-        // Constant-time username comparison
-        if ( ! hash_equals( $record['client_username'], $username ) ) {
-            $this->log_access( $token_id, 0, 'auth_failed', 0, 'Invalid username' );
+        // constant-time username comparison for security
+        if ( ! hash_equals( $da_record['client_username'], $da_username ) ) {
+            $this->log_da_access( $da_token_id, 0, 'auth_failed', 0, 'Invalid username' );
             return new WP_Error( 'invalid_credentials', __( 'Invalid credentials.', 'gf-external-entry-export' ) );
         }
 
-        // Verify password hash
-        if ( ! wp_check_password( $password, $record['client_password_hash'] ) ) {
-            $this->log_access( $token_id, 0, 'auth_failed', 0, 'Invalid password' );
+        // verifyin password hash
+        if ( ! wp_check_password( $da_password, $da_record['client_password_hash'] ) ) {
+            $this->log_da_access( $da_token_id, 0, 'auth_failed', 0, 'Invalid password' );
             return new WP_Error( 'invalid_credentials', __( 'Invalid credentials.', 'gf-external-entry-export' ) );
         }
 
@@ -371,57 +381,59 @@ class GF_EEE_Token_Handler {
     }
 
     /**
-     * Update download count after successful export.
+     * loggin da download after successful export
+     * updates the download count and last download time
      *
-     * @param string $token_id       Token ID.
-     * @param int    $entries_count  Number of entries exported.
+     * @param string $da_token_id      token id
+     * @param int    $da_entries_count number of entries exported
      * @return void
      */
-    public function record_download( $token_id, $entries_count = 0 ) {
+    public function log_da_download( $da_token_id, $da_entries_count = 0 ) {
         global $wpdb;
 
-        $table = $wpdb->prefix . self::TOKENS_TABLE;
+        $da_table = $wpdb->prefix . self::TOKENS_TABLE;
 
         $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$table} SET download_count = download_count + 1, last_download_at = %s WHERE token_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                "UPDATE {$da_table} SET download_count = download_count + 1, last_download_at = %s WHERE token_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 current_time( 'mysql', true ),
-                $token_id
+                $da_token_id
             )
         );
 
-        // Get form_id for logging
-        $record = $wpdb->get_row(
-            $wpdb->prepare( "SELECT form_id FROM {$table} WHERE token_id = %s", $token_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // gettin form_id for loggin
+        $da_record = $wpdb->get_row(
+            $wpdb->prepare( "SELECT form_id FROM {$da_table} WHERE token_id = %s", $da_token_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             ARRAY_A
         );
 
-        $this->log_access( $token_id, $record['form_id'] ?? 0, 'success', $entries_count );
+        $this->log_da_access( $da_token_id, $da_record['form_id'] ?? 0, 'success', $da_entries_count );
     }
 
     /**
-     * Revoke a token.
+     * killin da token - revokes it so it cant be used
+     * marks it as revoked in the database
      *
-     * @param string $token_id Token ID to revoke.
-     * @return bool|WP_Error True on success or error.
+     * @param string $da_token_id token id to revoke
+     * @return bool|WP_Error true on success or error
      */
-    public function revoke_token( $token_id ) {
+    public function kill_da_token( $da_token_id ) {
         global $wpdb;
 
-        $table  = $wpdb->prefix . self::TOKENS_TABLE;
-        $result = $wpdb->update(
-            $table,
+        $da_table  = $wpdb->prefix . self::TOKENS_TABLE;
+        $da_result = $wpdb->update(
+            $da_table,
             array(
                 'is_revoked' => 1,
                 'revoked_at' => current_time( 'mysql', true ),
                 'revoked_by' => get_current_user_id(),
             ),
-            array( 'token_id' => $token_id ),
+            array( 'token_id' => $da_token_id ),
             array( '%d', '%s', '%d' ),
             array( '%s' )
         );
 
-        if ( false === $result ) {
+        if ( false === $da_result ) {
             return new WP_Error( 'revoke_failed', __( 'Failed to revoke token.', 'gf-external-entry-export' ) );
         }
 
@@ -429,64 +441,66 @@ class GF_EEE_Token_Handler {
     }
 
     /**
-     * Get all tokens for a form.
+     * grabbin all tokens for a specific form
+     * can get just active ones or all of em
      *
-     * @param int  $form_id      Form ID.
-     * @param bool $active_only  Whether to return only active tokens.
+     * @param int  $da_form_id    form id
+     * @param bool $active_only   whether to get only active tokens
      * @return array
      */
-    public function get_tokens_for_form( $form_id, $active_only = true ) {
+    public function grab_tokens_for_form( $da_form_id, $active_only = true ) {
         global $wpdb;
 
-        $table = $wpdb->prefix . self::TOKENS_TABLE;
+        $da_table = $wpdb->prefix . self::TOKENS_TABLE;
 
         // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is wpdb->prefix + constant.
         if ( $active_only ) {
-            $tokens = $wpdb->get_results(
+            $da_tokens = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT token_id, description, created_at, expires_at, max_downloads, download_count, last_download_at, is_revoked, client_username
-                     FROM {$table}
+                     FROM {$da_table}
                      WHERE form_id = %d AND is_revoked = 0 AND (expires_at IS NULL OR expires_at > NOW())
                      ORDER BY created_at DESC",
-                    $form_id
+                    $da_form_id
                 ),
                 ARRAY_A
             );
         } else {
-            $tokens = $wpdb->get_results(
+            $da_tokens = $wpdb->get_results(
                 $wpdb->prepare(
                     "SELECT token_id, description, created_at, expires_at, max_downloads, download_count, last_download_at, is_revoked, client_username
-                     FROM {$table}
+                     FROM {$da_table}
                      WHERE form_id = %d
                      ORDER BY created_at DESC",
-                    $form_id
+                    $da_form_id
                 ),
                 ARRAY_A
             );
         }
         // phpcs:enable
 
-        // Add form title and user info
-        $form = GFAPI::get_form( $form_id );
-        foreach ( $tokens as &$token ) {
-            $token['form_title'] = $form ? $form['title'] : __( 'Unknown', 'gf-external-entry-export' );
+        // addin form title and user info
+        $da_form = GFAPI::get_form( $da_form_id );
+        foreach ( $da_tokens as &$da_token ) {
+            $da_token['form_title'] = $da_form ? $da_form['title'] : __( 'Unknown', 'gf-external-entry-export' );
         }
 
-        return $tokens;
+        return $da_tokens;
     }
 
     /**
-     * Get all active tokens across all forms.
+     * grabbin all active tokens across all forms
+     * for the overview page
      *
      * @return array
      */
-    public function get_all_active_tokens() {
+    public function grab_all_active_tokens() {
         global $wpdb;
 
-        $table = $wpdb->prefix . self::TOKENS_TABLE;
+        $da_table = $wpdb->prefix . self::TOKENS_TABLE;
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table for token management; caching not appropriate for token validation.
-        $tokens = $wpdb->get_results(
+        $da_tokens = $wpdb->get_results(
             $wpdb->prepare(
                 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 // Table names are wpdb->prefix + constant or wpdb property.
@@ -494,7 +508,7 @@ class GF_EEE_Token_Handler {
                         t.created_by, t.created_at, t.expires_at, t.max_downloads,
                         t.download_count, t.last_download_at, t.is_revoked,
                         t.client_username, u.display_name as created_by_name
-                 FROM {$table} t
+                 FROM {$da_table} t
                  LEFT JOIN {$wpdb->users} u ON t.created_by = u.ID
                  WHERE t.is_revoked = %d
                    AND (t.expires_at IS NULL OR t.expires_at > %s)
@@ -507,168 +521,170 @@ class GF_EEE_Token_Handler {
             ARRAY_A
         );
 
-        // Add form titles
-        foreach ( $tokens as &$token ) {
-            $form = GFAPI::get_form( $token['form_id'] );
-            $token['form_title'] = $form ? $form['title'] : __( 'Unknown', 'gf-external-entry-export' );
+        // addin form titles
+        foreach ( $da_tokens as &$da_token ) {
+            $da_form = GFAPI::get_form( $da_token['form_id'] );
+            $da_token['form_title'] = $da_form ? $da_form['title'] : __( 'Unknown', 'gf-external-entry-export' );
         }
 
-        return $tokens;
+        return $da_tokens;
     }
 
     /**
-     * Log access attempt.
+     * loggin da access attempt
+     * records who tried to access what and if it worked
      *
-     * @param string      $token_id        Token ID.
-     * @param int         $form_id         Form ID.
-     * @param string      $status          Status (success, expired, revoked, etc.).
-     * @param int         $entries_count   Number of entries exported.
-     * @param string|null $error_message   Error message if failed.
+     * @param string      $da_token_id      token id
+     * @param int         $da_form_id       form id
+     * @param string      $da_status        status (success, expired, revoked, etc)
+     * @param int         $da_entries_count number of entries exported
+     * @param string|null $da_error_msg     error message if failed
      * @return void
      */
-    public function log_access( $token_id, $form_id, $status, $entries_count = 0, $error_message = null ) {
+    public function log_da_access( $da_token_id, $da_form_id, $da_status, $da_entries_count = 0, $da_error_msg = null ) {
         global $wpdb;
 
-        $addon = gf_external_entry_export();
-        if ( $addon && ! $addon->get_plugin_setting( 'enable_logging' ) ) {
+        $da_addon = gf_eee_get_da_addon();
+        if ( $da_addon && ! $da_addon->get_plugin_setting( 'enable_logging' ) ) {
             return;
         }
 
-        $table = $wpdb->prefix . self::LOGS_TABLE;
+        $da_table = $wpdb->prefix . self::LOGS_TABLE;
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom logging table; write-only operation.
         $wpdb->insert(
-            $table,
+            $da_table,
             array(
-                'token_id'         => $token_id,
-                'form_id'          => $form_id,
+                'token_id'         => $da_token_id,
+                'form_id'          => $da_form_id,
                 'accessed_at'      => current_time( 'mysql', true ),
-                'ip_address'       => $this->get_visitor_ip(),
+                'ip_address'       => $this->grab_user_ip(),
                 'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 500 ) : null,
-                'status'           => $status,
-                'entries_exported' => $entries_count,
-                'error_message'    => $error_message,
+                'status'           => $da_status,
+                'entries_exported' => $da_entries_count,
+                'error_message'    => $da_error_msg,
             ),
             array( '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%s' )
         );
     }
 
     /**
-     * Get visitor IP address.
-     *
-     * Only trusts proxy headers (X-Forwarded-For, CF-Connecting-IP) when the
-     * request comes from a known trusted proxy. Falls back to REMOTE_ADDR.
+     * grabbin the user's ip address
+     * only trusts proxy headers when comin from a known trusted proxy
      *
      * @return string
      */
-    private function get_visitor_ip() {
-        // REMOTE_ADDR is always the direct connection and cannot be spoofed.
-        $remote_addr = isset( $_SERVER['REMOTE_ADDR'] )
+    private function grab_user_ip() {
+        // REMOTE_ADDR is always the direct connecton and cant be spoofed
+        $da_remote_addr = isset( $_SERVER['REMOTE_ADDR'] )
             ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
             : '0.0.0.0';
 
         /**
-         * Filter the list of trusted proxy IPs/CIDRs.
+         * Filter the list of trusted proxy IPs/CIDRs
          *
-         * If the direct connection (REMOTE_ADDR) is from a trusted proxy,
-         * we read the real client IP from the forwarding headers.
+         * if the direct connecton is from a trusted proxy
+         * we read the real client ip from the forwading headers
          *
-         * @param array $trusted_proxies Trusted proxy IP addresses.
+         * @param array $da_trusted_proxies trusted proxy ip addresses
          */
-        $trusted_proxies = apply_filters( 'gf_eee_trusted_proxies', array() );
+        $da_trusted_proxies = apply_filters( 'gf_eee_trusted_proxies', array() );
 
-        if ( empty( $trusted_proxies ) || ! in_array( $remote_addr, $trusted_proxies, true ) ) {
-            // Not behind a trusted proxy — REMOTE_ADDR is the client IP.
-            return filter_var( $remote_addr, FILTER_VALIDATE_IP ) ? $remote_addr : '0.0.0.0';
+        if ( empty( $da_trusted_proxies ) || ! in_array( $da_remote_addr, $da_trusted_proxies, true ) ) {
+            // not behind a trusted proxy so REMOTE_ADDR is the client ip
+            return filter_var( $da_remote_addr, FILTER_VALIDATE_IP ) ? $da_remote_addr : '0.0.0.0';
         }
 
-        // Trusted proxy — read forwarding headers in priority order.
-        $proxy_keys = array(
-            'HTTP_CF_CONNECTING_IP', // Cloudflare
+        // trusted proxy so read forwading headers in priority order
+        $da_proxy_keys = array(
+            'HTTP_CF_CONNECTING_IP', // cloudflare
             'HTTP_X_FORWARDED_FOR',
             'HTTP_X_REAL_IP',
         );
 
-        foreach ( $proxy_keys as $key ) {
-            if ( ! empty( $_SERVER[ $key ] ) ) {
-                $ip = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
-                // Handle comma-separated IPs (X-Forwarded-For)
-                if ( strpos( $ip, ',' ) !== false ) {
-                    $ip = trim( explode( ',', $ip )[0] );
+        foreach ( $da_proxy_keys as $da_key ) {
+            if ( ! empty( $_SERVER[ $da_key ] ) ) {
+                $da_ip = sanitize_text_field( wp_unslash( $_SERVER[ $da_key ] ) );
+                // handlin comma-separated ips (x-forwarded-for)
+                if ( strpos( $da_ip, ',' ) !== false ) {
+                    $da_ip = trim( explode( ',', $da_ip )[0] );
                 }
-                if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-                    return $ip;
+                if ( filter_var( $da_ip, FILTER_VALIDATE_IP ) ) {
+                    return $da_ip;
                 }
             }
         }
 
-        return filter_var( $remote_addr, FILTER_VALIDATE_IP ) ? $remote_addr : '0.0.0.0';
+        return filter_var( $da_remote_addr, FILTER_VALIDATE_IP ) ? $da_remote_addr : '0.0.0.0';
     }
 
     /**
-     * Get or generate secret key.
+     * gettin or generatin the secret key
+     * used for signin tokens
      *
      * @return string
      */
-    private function get_secret_key() {
-        $addon = gf_external_entry_export();
-        $key   = $addon ? $addon->get_plugin_setting( 'secret_key' ) : '';
+    private function grab_secret_key() {
+        $da_addon = gf_eee_get_da_addon();
+        $da_key   = $da_addon ? $da_addon->get_plugin_setting( 'secret_key' ) : '';
 
-        if ( empty( $key ) ) {
-            // Fallback: derive a stable key from WP auth constants.
+        if ( empty( $da_key ) ) {
+            // fallback: derive a stable key from wp auth constants
             if ( defined( 'AUTH_KEY' ) && AUTH_KEY !== 'put your unique phrase here' ) {
-                $key = AUTH_KEY;
+                $da_key = AUTH_KEY;
             } elseif ( defined( 'SECURE_AUTH_KEY' ) && SECURE_AUTH_KEY !== 'put your unique phrase here' ) {
-                $key = SECURE_AUTH_KEY;
+                $da_key = SECURE_AUTH_KEY;
             } else {
-                // Last resort: generate a persistent key and store it.
-                $key = get_option( 'gf_eee_fallback_secret' );
-                if ( empty( $key ) ) {
-                    $key = bin2hex( random_bytes( 32 ) );
-                    update_option( 'gf_eee_fallback_secret', $key, false );
+                // last resort: generate a persistant key and store it
+                $da_key = get_option( 'gf_eee_fallback_secret' );
+                if ( empty( $da_key ) ) {
+                    $da_key = bin2hex( random_bytes( 32 ) );
+                    update_option( 'gf_eee_fallback_secret', $da_key, false );
                 }
             }
         }
 
-        return $key;
+        return $da_key;
     }
 
     /**
-     * Build export URL.
+     * buildin the export url
+     * adds the token params to the rest endpoint
      *
-     * @param string $token_id Token ID.
-     * @param string $token    Full signed token.
+     * @param string $da_token_id token id
+     * @param string $da_token    full signed token
      * @return string
      */
-    private function get_export_url( $token_id, $token ) {
+    private function make_export_url( $da_token_id, $da_token ) {
         return add_query_arg(
             array(
-                'gf_eee_export' => $token_id,
-                'token'         => rawurlencode( $token ),
+                'gf_eee_export' => $da_token_id,
+                'token'         => rawurlencode( $da_token ),
             ),
             rest_url( 'gf-eee/v1/export' )
         );
     }
 
     /**
-     * Clean up expired tokens.
+     * cleanin up expired tokens
+     * deletes tokens that have been expired for a while
      *
-     * @param int $days_old Delete tokens expired more than this many days ago.
-     * @return int Number of tokens deleted.
+     * @param int $days_old delete tokens expired more than this many days ago
+     * @return int number of tokens deleted
      */
-    public function cleanup_expired_tokens( $days_old = 30 ) {
+    public function cleanup_gone( $days_old = 30 ) {
         global $wpdb;
 
-        $table    = $wpdb->prefix . self::TOKENS_TABLE;
-        $cutoff   = gmdate( 'Y-m-d H:i:s', time() - ( $days_old * DAY_IN_SECONDS ) );
+        $da_table    = $wpdb->prefix . self::TOKENS_TABLE;
+        $da_cutoff   = gmdate( 'Y-m-d H:i:s', time() - ( $days_old * DAY_IN_SECONDS ) );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation on custom table.
-        $deleted  = $wpdb->query(
+        $da_deleted  = $wpdb->query(
             $wpdb->prepare(
-                "DELETE FROM {$table} WHERE expires_at IS NOT NULL AND expires_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                $cutoff
+                "DELETE FROM {$da_table} WHERE expires_at IS NOT NULL AND expires_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $da_cutoff
             )
         );
 
-        return $deleted;
+        return $da_deleted;
     }
 }

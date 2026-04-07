@@ -3,7 +3,7 @@
  * Plugin Name: GF External Entry Export
  * Plugin URI: https://github.com/izzygld/gf-external-entry-export
  * Description: Generate secure, expiring download links for Gravity Forms entries - no WordPress admin access required for external users.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: izzygld
  * Author URI: https://github.com/izzygld
  * Text Domain: gf-external-entry-export
@@ -14,32 +14,34 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 
+// dont let ppl access this file directly thats bad
 defined( 'ABSPATH' ) || exit;
 
-define( 'GF_EXTERNAL_ENTRY_EXPORT_VERSION', '1.0.1' );
+// settin up all our constant values for the plugin
+define( 'GF_EXTERNAL_ENTRY_EXPORT_VERSION', '1.0.2' );
 define( 'GF_EXTERNAL_ENTRY_EXPORT_MIN_GF_VERSION', '2.5' );
 define( 'GF_EXTERNAL_ENTRY_EXPORT_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GF_EXTERNAL_ENTRY_EXPORT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 /**
- * Check if Gravity Forms is active.
- *
- * Shows admin notice and deactivates plugin if GF is not available.
+ * checkin if gravity forms is installed on the site
+ * if its not there we gotta show an eror and turn off the plugin
  */
-function gf_eee_check_gravity_forms_dependency() {
-    // Check if Gravity Forms is active
+function gf_eee_check_gf_installed() {
+    // lookin for gravity forms class to see if its active
     if ( ! class_exists( 'GFForms' ) ) {
-        add_action( 'admin_notices', 'gf_eee_missing_gravity_forms_notice' );
-        add_action( 'admin_init', 'gf_eee_deactivate_self' );
+        add_action( 'admin_notices', 'gf_eee_show_missing_gf_error' );
+        add_action( 'admin_init', 'gf_eee_turn_off_plugin' );
         return false;
     }
     return true;
 }
 
 /**
- * Display admin notice when Gravity Forms is missing.
+ * showin the admin error when gravity forms aint there
+ * this pops up at the top of the admin area
  */
-function gf_eee_missing_gravity_forms_notice() {
+function gf_eee_show_missing_gf_error() {
     ?>
     <div class="notice notice-error is-dismissible">
         <p>
@@ -57,73 +59,75 @@ function gf_eee_missing_gravity_forms_notice() {
 }
 
 /**
- * Deactivate this plugin if Gravity Forms is not active.
+ * turnin off the plugin if gravity forms isnt there
+ * we dont want it runnin without its dependency ya know
  */
-function gf_eee_deactivate_self() {
-    // Only deactivate if we're in admin and the plugin is active
+function gf_eee_turn_off_plugin() {
+    // only do this if were in admin and user can activate plugins
     if ( is_admin() && current_user_can( 'activate_plugins' ) ) {
         deactivate_plugins( plugin_basename( __FILE__ ) );
 
-        // Remove the "Plugin activated" notice
+        // get rid of the "Plugin activated" message cuz its misleading
         if ( isset( $_GET['activate'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
             unset( $_GET['activate'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         }
     }
 }
 
-// Run dependency check on plugins_loaded (before gform_loaded)
-add_action( 'plugins_loaded', 'gf_eee_check_gravity_forms_dependency', 1 );
+// runnin our dependency check early before gf loads
+add_action( 'plugins_loaded', 'gf_eee_check_gf_installed', 1 );
 
 /**
- * Bootstrap class for GF External Entry Export addon.
- *
- * Handles proper initialization after Gravity Forms loads.
- * Following GF addon framework best practices from docs.gravityforms.com
+ * this class handles loadin up the whole plugin
+ * its like the main entry point that gets everyting started
+ * followin the gf addon framework patterns from their docs
  */
-class GF_External_Entry_Export_Bootstrap {
+class GF_EEE_PLUGIN_LOADER {
 
     /**
-     * Load the addon when Gravity Forms is ready.
+     * loads up da addon when gravity forms is ready to go
+     * this is where all the magic starts happenin
      *
      * @return void
      */
-    public static function load() {
-        // Ensure GF addon framework is available
+    public static function fire_it_up() {
+        // makin sure the gf addon framework stuff is availalbe
         if ( ! method_exists( 'GFForms', 'include_addon_framework' ) ) {
             return;
         }
 
-        // Include addon framework
+        // bringin in the addon framework
         GFForms::include_addon_framework();
 
-        // Load dependencies
+        // loadin up all our helper classes and stuff
         require_once GF_EXTERNAL_ENTRY_EXPORT_PLUGIN_PATH . 'includes/class-token-handler.php';
         require_once GF_EXTERNAL_ENTRY_EXPORT_PLUGIN_PATH . 'includes/class-export-handler.php';
         require_once GF_EXTERNAL_ENTRY_EXPORT_PLUGIN_PATH . 'includes/class-rest-controller.php';
         require_once GF_EXTERNAL_ENTRY_EXPORT_PLUGIN_PATH . 'class-gf-external-entry-export.php';
 
-        // Register the addon
-        GFAddOn::register( 'GF_External_Entry_Export' );
+        // registerring the addon with gravity forms
+        GFAddOn::register( 'GF_EEE_MAIN_ADDON' );
     }
 
     /**
-     * Get the addon instance.
+     * grabbin da addon instance so we can use it elsewhere
      *
-     * @return GF_External_Entry_Export|null
+     * @return GF_EEE_MAIN_ADDON|null
      */
-    public static function get_instance() {
-        return class_exists( 'GF_External_Entry_Export' ) ? GF_External_Entry_Export::get_instance() : null;
+    public static function grab_da_instance() {
+        return class_exists( 'GF_EEE_MAIN_ADDON' ) ? GF_EEE_MAIN_ADDON::get_instance() : null;
     }
 }
 
-// Initialize on gform_loaded hook (priority 5 per GF docs)
-add_action( 'gform_loaded', array( 'GF_External_Entry_Export_Bootstrap', 'load' ), 5 );
+// startin everything up when gform_loaded fires (priority 5 like gf docs say)
+add_action( 'gform_loaded', array( 'GF_EEE_PLUGIN_LOADER', 'fire_it_up' ), 5 );
 
 /**
- * Helper function to get addon instance.
+ * helper function to quickly get da addon instance
+ * makes it easier to access from other places in the code
  *
- * @return GF_External_Entry_Export|null
+ * @return GF_EEE_MAIN_ADDON|null
  */
-function gf_external_entry_export() {
-    return GF_External_Entry_Export_Bootstrap::get_instance();
+function gf_eee_get_da_addon() {
+    return GF_EEE_PLUGIN_LOADER::grab_da_instance();
 }

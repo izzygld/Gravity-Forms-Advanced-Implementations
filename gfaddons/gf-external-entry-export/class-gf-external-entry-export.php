@@ -1,79 +1,82 @@
 <?php
 /**
- * Main GF External Entry Export Addon Class.
+ * Main GF External Entry Export Addon Class
  *
- * Extends GFAddOn to provide secure external entry export functionality.
+ * this is where all the addon magic happens
+ * extends GFAddOn to give us all that secure external export stuff
  *
  * @package GF_External_Entry_Export
  */
 
+// dont let anyone access this directly
 defined( 'ABSPATH' ) || exit;
 
 /**
- * GF_External_Entry_Export class.
+ * GF_EEE_MAIN_ADDON class
  *
- * Following the GFAddOn pattern from docs.gravityforms.com/gfaddon/
+ * followin the GFAddOn pattern from the gf docs
+ * this handles all the settings, ajax stuff, and ui rendering
  */
-class GF_External_Entry_Export extends GFAddOn {
+class GF_EEE_MAIN_ADDON extends GFAddOn {
 
     /**
-     * Contains an instance of this class, if available.
+     * holds an instance of this class, if we got one
      *
-     * @var GF_External_Entry_Export|null
+     * @var GF_EEE_MAIN_ADDON|null
      */
     private static $_instance = null;
 
     /**
-     * Addon version.
+     * addon version number
      *
      * @var string
      */
     protected $_version = GF_EXTERNAL_ENTRY_EXPORT_VERSION;
 
     /**
-     * Minimum required Gravity Forms version.
+     * minimum gf version we need to work
      *
      * @var string
      */
     protected $_min_gravityforms_version = GF_EXTERNAL_ENTRY_EXPORT_MIN_GF_VERSION;
 
     /**
-     * URL-safe addon slug (max 33 chars).
+     * url-safe addon slug, gotta be max 33 chars
      *
      * @var string
      */
     protected $_slug = 'gf-external-entry-export';
 
     /**
-     * Relative path to plugin from plugins folder.
+     * path to plugin from the plugins folder
      *
      * @var string
      */
     protected $_path = 'gf-external-entry-export/gf-external-entry-export.php';
 
     /**
-     * Full path to main plugin file.
+     * full path to the main plugin file
      *
      * @var string
      */
     protected $_full_path = __FILE__;
 
     /**
-     * Addon title.
+     * the full title of our addon
      *
      * @var string
      */
     protected $_title = 'Gravity Forms External Entry Export';
 
     /**
-     * Short addon title.
+     * shorter title for menus n stuff
      *
      * @var string
      */
     protected $_short_title = 'External Export';
 
     /**
-     * Addon capabilities.
+     * capabilites our addon uses for permissions
      *
      * @var array
      */
@@ -84,44 +87,45 @@ class GF_External_Entry_Export extends GFAddOn {
     );
 
     /**
-     * Settings capability.
+     * capability needed for setings page
      *
      * @var string
      */
     protected $_capabilities_settings_page = 'gf_external_entry_export_settings';
 
     /**
-     * Form settings capability.
+     * capability needed for form setings
      *
      * @var string
      */
     protected $_capabilities_form_settings = 'gf_external_entry_export_form_settings';
 
     /**
-     * Token handler instance.
+     * our token controller instance for handlin tokens
      *
-     * @var GF_EEE_Token_Handler
+     * @var GF_EEE_TOKEN_CONTROLLER
      */
-    public $token_handler;
+    public $token_controller;
 
     /**
-     * Export handler instance.
+     * our export maker instance for generatin csv stuff
      *
-     * @var GF_EEE_Export_Handler
+     * @var GF_EEE_EXPORT_MAKER
      */
-    public $export_handler;
+    public $export_maker;
 
     /**
-     * REST controller instance.
+     * our api handler instance for rest endpoints
      *
-     * @var GF_EEE_REST_Controller
+     * @var GF_EEE_API_HANDLER
      */
-    public $rest_controller;
+    public $api_handler;
 
     /**
-     * Returns an instance of this class.
+     * gets the singleton instance of this class
+     * creates it if it dont exist yet
      *
-     * @return GF_External_Entry_Export
+     * @return GF_EEE_MAIN_ADDON
      */
     public static function get_instance() {
         if ( null === self::$_instance ) {
@@ -131,132 +135,137 @@ class GF_External_Entry_Export extends GFAddOn {
     }
 
     /**
-     * Run before WordPress init.
+     * runs before wordpress init kicks off
+     * settin up our handler instances early
      *
      * @return void
      */
     public function pre_init() {
         parent::pre_init();
 
-        // Initialize handlers
-        $this->token_handler  = new GF_EEE_Token_Handler();
-        $this->export_handler = new GF_EEE_Export_Handler();
+        // spinnin up our handler classes
+        $this->token_controller = new GF_EEE_TOKEN_CONTROLLER();
+        $this->export_maker     = new GF_EEE_EXPORT_MAKER();
 
-        // Register AJAX hooks early so they're available during admin-ajax.php requests.
-        // GFAddOn::init_ajax() is gated behind is_gravityforms_supported() which
-        // may not pass in the AJAX context, so we register unconditionally here.
+        // gotta hook up ajax early so its available during admin-ajax.php requests
+        // cuz GFAddOn::init_ajax() has some gatekeeping that might not pass
         if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
-            $this->register_ajax_handlers();
+            $this->hookup_ajax_stuff();
         }
     }
 
     /**
-     * Init method - runs on all pages.
+     * init method that runs on all pages
+     * settin up our rest routes here
      *
      * @return void
      */
     public function init() {
         parent::init();
 
-        // Register REST routes
-        add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+        // registerin our rest api routes
+        add_action( 'rest_api_init', array( $this, 'setup_rest_routes' ) );
     }
 
     /**
-     * Init admin - runs in WP admin only.
+     * init admin runs only in wp admin area
+     * settin up admin-specific hooks here
      *
      * @return void
      */
     public function init_admin() {
         parent::init_admin();
 
-        // Add "External Export" link to form list hover actions and toolbar.
+        // addin "External Export" link to form list toolbar and hover actions
         add_filter( 'gform_toolbar_menu', array( $this, 'add_toolbar_menu_item' ), 10, 2 );
         add_filter( 'gform_form_actions', array( $this, 'add_form_action' ), 10, 2 );
 
-        // Register AJAX handlers (also registered in init_ajax for AJAX context).
-        $this->register_ajax_handlers();
+        // registerin ajax handlers here too
+        $this->hookup_ajax_stuff();
     }
 
     /**
-     * Init AJAX — runs when RG_CURRENT_PAGE is admin-ajax.php.
-     *
-     * GFAddOn calls init_ajax() instead of init_admin() for AJAX requests,
-     * so AJAX action hooks must be registered here.
+     * init ajax runs when we're in an ajax request
+     * GFAddOn calls this instead of init_admin for ajax stuff
      *
      * @return void
      */
     public function init_ajax() {
         parent::init_ajax();
 
-        $this->register_ajax_handlers();
+        $this->hookup_ajax_stuff();
     }
 
     /**
-     * Register AJAX action hooks for link management.
+     * hookin up all our ajax action handlers
+     * these handle link generation, revoking, n stuff
      *
      * @return void
      */
-    private function register_ajax_handlers() {
-        add_action( 'wp_ajax_gf_eee_generate_link', array( $this, 'ajax_generate_link' ) );
-        add_action( 'wp_ajax_gf_eee_revoke_link', array( $this, 'ajax_revoke_link' ) );
-        add_action( 'wp_ajax_gf_eee_get_links', array( $this, 'ajax_get_links' ) );
-        add_action( 'wp_ajax_gf_eee_regenerate_creds', array( $this, 'ajax_regenerate_creds' ) );
+    private function hookup_ajax_stuff() {
+        add_action( 'wp_ajax_gf_eee_generate_link', array( $this, 'ajax_make_da_link' ) );
+        add_action( 'wp_ajax_gf_eee_revoke_link', array( $this, 'ajax_kill_da_link' ) );
+        add_action( 'wp_ajax_gf_eee_get_links', array( $this, 'ajax_grab_links' ) );
+        add_action( 'wp_ajax_gf_eee_regenerate_creds', array( $this, 'ajax_remake_creds' ) );
     }
 
     /**
-     * Register REST API routes.
+     * settin up our rest api routes
+     * creates the api handler and registers everything
      *
      * @return void
      */
-    public function register_rest_routes() {
-        $this->rest_controller = new GF_EEE_REST_Controller( $this );
-        $this->rest_controller->register_routes();
+    public function setup_rest_routes() {
+        $this->api_handler = new GF_EEE_API_HANDLER( $this );
+        $this->api_handler->setup_da_routes();
     }
 
     /**
-     * Add "External Export" to the form toolbar menu.
+     * addin "External Export" to the form toolbar menu
+     * shows up at the top when editin a form
      *
-     * @param array $menu_items Existing menu items.
-     * @param int   $form_id    Current form ID.
+     * @param array $da_menu_items existin menu items
+     * @param int   $da_form_id    current form id
      * @return array
      */
-    public function add_toolbar_menu_item( $menu_items, $form_id ) {
-        $menu_items['external_export'] = array(
+    public function add_toolbar_menu_item( $da_menu_items, $da_form_id ) {
+        $da_menu_items['external_export'] = array(
             'label'        => esc_html__( 'External Export', 'gf-external-entry-export' ),
             'short_label'  => esc_html__( 'Export', 'gf-external-entry-export' ),
             'icon'         => '<i class="gform-icon gform-icon--circle-arrow-down"></i>',
-            'url'          => admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=' . $this->get_slug() . '&id=' . absint( $form_id ) ),
+            'url'          => admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=' . $this->get_slug() . '&id=' . absint( $da_form_id ) ),
             'menu_class'   => 'gf_form_toolbar_external_export',
             'link_class'   => GFForms::get_page() === 'form_settings' && rgget( 'subview' ) === $this->get_slug() ? 'gf_toolbar_active' : '',
             'capabilities' => array( 'gf_external_entry_export_form_settings', 'gravityforms_edit_forms', 'manage_options' ),
             'priority'     => 699,
         );
 
-        return $menu_items;
+        return $da_menu_items;
     }
 
     /**
-     * Add "External Export" to form list row actions (hover links).
+     * addin "External Export" to form list row actions
+     * shows up when you hover over a form in the list
      *
-     * @param array $actions Existing row actions.
-     * @param int   $form_id Current form ID.
+     * @param array $da_actions existin row actions
+     * @param int   $da_form_id current form id
      * @return array
      */
-    public function add_form_action( $actions, $form_id ) {
-        $actions['external_export'] = array(
+    public function add_form_action( $da_actions, $da_form_id ) {
+        $da_actions['external_export'] = array(
             'label'        => esc_html__( 'External Export', 'gf-external-entry-export' ),
-            'url'          => admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=' . $this->get_slug() . '&id=' . absint( $form_id ) ),
+            'url'          => admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=' . $this->get_slug() . '&id=' . absint( $da_form_id ) ),
             'menu_class'   => 'gf_form_toolbar_external_export',
             'capabilities' => array( 'gf_external_entry_export_form_settings', 'gravityforms_edit_forms', 'manage_options' ),
             'priority'     => 699,
         );
 
-        return $actions;
+        return $da_actions;
     }
 
     /**
-     * Minimum requirements for this addon.
+     * minimum requirments to run this addon
+     * checkin php version and gf version
      *
      * @return array
      */
@@ -272,7 +281,8 @@ class GF_External_Entry_Export extends GFAddOn {
     }
 
     /**
-     * Plugin settings fields.
+     * plugin setings fields for the global config page
+     * these are the main settings before per-form stuff
      *
      * @return array
      */
@@ -355,29 +365,30 @@ class GF_External_Entry_Export extends GFAddOn {
     }
 
     /**
-     * Form settings fields.
+     * form settings fields for per-form configuration
+     * this is where admins pick which fields to export n stuff
      *
-     * @param array $form Current form.
+     * @param array $da_form current form object
      * @return array
      */
-    public function form_settings_fields( $form ) {
-        $field_choices = $this->get_field_choices( $form );
+    public function form_settings_fields( $da_form ) {
+        $da_field_choices = $this->grab_field_choices( $da_form );
 
-        // Auto-generate credentials if not set yet.
-        $form_settings     = $this->get_form_settings( $form );
-        if ( ! is_array( $form_settings ) ) {
-            $form_settings = array();
+        // auto-generate creds if they aint set yet
+        $da_form_settings   = $this->get_form_settings( $da_form );
+        if ( ! is_array( $da_form_settings ) ) {
+            $da_form_settings = array();
         }
-        $export_username   = rgar( $form_settings, 'export_username' );
-        $export_password   = rgar( $form_settings, 'export_password' );
+        $da_export_username = rgar( $da_form_settings, 'export_username' );
+        $da_export_password = rgar( $da_form_settings, 'export_password' );
 
-        if ( empty( $export_username ) || empty( $export_password ) ) {
-            $export_username = 'export_' . bin2hex( random_bytes( 6 ) );
-            $export_password = bin2hex( random_bytes( 16 ) );
+        if ( empty( $da_export_username ) || empty( $da_export_password ) ) {
+            $da_export_username = 'export_' . bin2hex( random_bytes( 6 ) );
+            $da_export_password = bin2hex( random_bytes( 16 ) );
 
-            $form_settings['export_username'] = $export_username;
-            $form_settings['export_password'] = $export_password;
-            $this->save_form_settings( $form, $form_settings );
+            $da_form_settings['export_username'] = $da_export_username;
+            $da_form_settings['export_password'] = $da_export_password;
+            $this->save_form_settings( $da_form, $da_form_settings );
         }
 
         return array(
@@ -401,7 +412,7 @@ class GF_External_Entry_Export extends GFAddOn {
                         'name'       => 'allowed_fields',
                         'label'      => esc_html__( 'Exportable Fields', 'gf-external-entry-export' ),
                         'type'       => 'checkbox',
-                        'choices'    => $field_choices,
+                        'choices'    => $da_field_choices,
                         'tooltip'    => esc_html__( 'Select which fields can be included in external exports.', 'gf-external-entry-export' ),
                         'dependency' => array(
                             'live'   => true,
@@ -510,7 +521,7 @@ class GF_External_Entry_Export extends GFAddOn {
                         'label'      => esc_html__( 'Username', 'gf-external-entry-export' ),
                         'type'       => 'html',
                         'html'       => '<code id="gf-eee-cred-username" style="font-size:14px;user-select:all;">'
-                            . esc_html( rgar( $form_settings, 'export_username', '' ) )
+                            . esc_html( rgar( $da_form_settings, 'export_username', '' ) )
                             . '</code> '
                             . '<button type="button" class="button button-small gf-eee-copy-field" data-target="gf-eee-cred-username">'
                             . esc_html__( 'Copy', 'gf-external-entry-export' )
@@ -522,7 +533,7 @@ class GF_External_Entry_Export extends GFAddOn {
                         'label'       => esc_html__( 'Password', 'gf-external-entry-export' ),
                         'type'        => 'html',
                         'html'        => '<code id="gf-eee-cred-password" style="font-size:14px;user-select:all;">'
-                            . esc_html( rgar( $form_settings, 'export_password', '' ) )
+                            . esc_html( rgar( $da_form_settings, 'export_password', '' ) )
                             . '</code> '
                             . '<button type="button" class="button button-small gf-eee-copy-field" data-target="gf-eee-cred-password">'
                             . esc_html__( 'Copy', 'gf-external-entry-export' )
@@ -539,91 +550,91 @@ class GF_External_Entry_Export extends GFAddOn {
     }
 
     /**
-     * Custom form settings page.
+     * custom form settings page renderer
+     * renders the standard settings then adds our link managment ui below
      *
-     * Renders the standard settings fields via the GFAddOn renderer,
-     * then appends the per-form link management UI below.
-     *
-     * @param array $form Current form object.
+     * @param array $da_form current form object
      * @return void
      */
-    public function form_settings( $form ) {
-        // Render the standard settings (enable/disable, field selection, filters).
-        $renderer = $this->get_settings_renderer();
-        if ( $renderer ) {
-            $renderer->render();
+    public function form_settings( $da_form ) {
+        // renderin the standard settings first (enable/disable, field selection, filters)
+        $da_renderer = $this->get_settings_renderer();
+        if ( $da_renderer ) {
+            $da_renderer->render();
         }
 
-        // Render the link management UI scoped to this form.
-        $this->render_form_link_management( $form );
+        // now render our link managment ui for this form
+        $this->render_form_link_ui( $da_form );
     }
 
     /**
-     * Get field choices for form settings.
+     * grabbin field choices for the form settings checkboxes
+     * goes thru all the form fields and makes checkbox options
      *
-     * @param array $form Form object.
+     * @param array $da_form form object
      * @return array
      */
-    private function get_field_choices( $form ) {
-        $choices = array();
+    private function grab_field_choices( $da_form ) {
+        $da_choices = array();
 
-        if ( empty( $form['fields'] ) ) {
-            return $choices;
+        if ( empty( $da_form['fields'] ) ) {
+            return $da_choices;
         }
 
-        foreach ( $form['fields'] as $field ) {
-            // Skip non-data fields
-            if ( in_array( $field->type, array( 'html', 'section', 'page', 'captcha' ), true ) ) {
+        foreach ( $da_form['fields'] as $da_field ) {
+            // skippin non-data fields like html sections etc
+            if ( in_array( $da_field->type, array( 'html', 'section', 'page', 'captcha' ), true ) ) {
                 continue;
             }
 
-            $field_label = ! empty( $field->adminLabel ) ? $field->adminLabel : $field->label;
+            $da_field_label = ! empty( $da_field->adminLabel ) ? $da_field->adminLabel : $da_field->label;
 
-            // Field types that store a single combined value despite having sub-inputs.
-            $single_value_types = array( 'time', 'date', 'password' );
+            // field types that store one combined value even tho they got sub-inputs
+            $single_val_types = array( 'time', 'date', 'password' );
 
-            // Handle multi-input fields
-            if ( is_array( $field->inputs ) && ! empty( $field->inputs ) && ! in_array( $field->type, $single_value_types, true ) ) {
-                foreach ( $field->inputs as $input ) {
-                    if ( ! empty( $input['isHidden'] ) ) {
+            // handlin multi-input fields like name, address, etc
+            if ( is_array( $da_field->inputs ) && ! empty( $da_field->inputs ) && ! in_array( $da_field->type, $single_val_types, true ) ) {
+                foreach ( $da_field->inputs as $da_input ) {
+                    if ( ! empty( $da_input['isHidden'] ) ) {
                         continue;
                     }
-                    $input_label = ! empty( $input['label'] ) ? $input['label'] : $field_label;
-                    $choices[]   = array(
-                        'label' => sprintf( '%s (%s)', $field_label, $input_label ),
-                        'name'  => 'field_' . str_replace( '.', '_', $input['id'] ),
+                    $da_input_label = ! empty( $da_input['label'] ) ? $da_input['label'] : $da_field_label;
+                    $da_choices[]   = array(
+                        'label' => sprintf( '%s (%s)', $da_field_label, $da_input_label ),
+                        'name'  => 'field_' . str_replace( '.', '_', $da_input['id'] ),
                     );
                 }
             } else {
-                $choices[] = array(
-                    'label' => $field_label,
-                    'name'  => 'field_' . $field->id,
+                $da_choices[] = array(
+                    'label' => $da_field_label,
+                    'name'  => 'field_' . $da_field->id,
                 );
             }
         }
 
-        return $choices;
+        return $da_choices;
     }
 
     /**
-     * Add form settings menu item.
+     * addin our form settings menu item
+     * shows up in the form settings sidebar
      *
-     * @param array $menu_items Existing menu items.
-     * @param int   $form_id    Form ID.
+     * @param array $da_menu_items existin menu items
+     * @param int   $da_form_id    form id
      * @return array
      */
-    public function add_form_settings_menu( $menu_items, $form_id ) {
-        $menu_items[] = array(
+    public function add_form_settings_menu( $da_menu_items, $da_form_id ) {
+        $da_menu_items[] = array(
             'name'         => $this->_slug,
             'label'        => esc_html__( 'External Downloads', 'gf-external-entry-export' ),
             'icon'         => $this->get_menu_icon(),
             'capabilities' => array( $this->_capabilities_form_settings ),
         );
-        return $menu_items;
+        return $da_menu_items;
     }
 
     /**
-     * Get menu icon.
+     * gettin the menu icon for our addon
      *
      * @return string
      */
@@ -632,23 +643,22 @@ class GF_External_Entry_Export extends GFAddOn {
     }
 
     /**
-     * Render per-form link management UI.
+     * renderin the per-form link managment ui
+     * this shows up below the form settings stuff
      *
-     * Displayed below the form settings on the External Downloads tab.
-     *
-     * @param array $form Current form object.
+     * @param array $da_form current form object
      * @return void
      */
-    private function render_form_link_management( $form ) {
-        $form_id       = absint( $form['id'] );
-        $form_settings = $this->get_form_settings( $form );
-        $is_enabled    = ! empty( $form_settings['enable_export'] );
+    private function render_form_link_ui( $da_form ) {
+        $da_form_id       = absint( $da_form['id'] );
+        $da_form_settings = $this->get_form_settings( $da_form );
+        $is_turned_on     = ! empty( $da_form_settings['enable_export'] );
         ?>
-        <div class="gf-eee-form-management" data-form-id="<?php echo esc_attr( $form_id ); ?>">
+        <div class="gf-eee-form-management" data-form-id="<?php echo esc_attr( $da_form_id ); ?>">
             <hr style="margin: 30px 0;">
             <h3><?php esc_html_e( 'Export Link Management', 'gf-external-entry-export' ); ?></h3>
 
-            <?php if ( ! $is_enabled ) : ?>
+            <?php if ( ! $is_turned_on ) : ?>
                 <div class="gform-alert gform-alert--warning" style="padding: 12px 16px; margin-bottom: 16px;">
                     <p><?php esc_html_e( 'Enable "Allow generating external export links for this form" above, then save settings to manage export links.', 'gf-external-entry-export' ); ?></p>
                 </div>
@@ -657,7 +667,7 @@ class GF_External_Entry_Export extends GFAddOn {
                 <div class="gf-eee-generate-section">
                     <h4><?php esc_html_e( 'Generate New Export Link', 'gf-external-entry-export' ); ?></h4>
 
-                    <input type="hidden" id="gf-eee-form-id" value="<?php echo esc_attr( $form_id ); ?>">
+                    <input type="hidden" id="gf-eee-form-id" value="<?php echo esc_attr( $da_form_id ); ?>">
 
                     <table class="form-table gf-eee-generate-table">
                         <tr>
@@ -789,12 +799,13 @@ class GF_External_Entry_Export extends GFAddOn {
     }
 
     /**
-     * Scripts to enqueue.
+     * scripts we need to load up
+     * enqueuin our admin js file
      *
      * @return array
      */
     public function scripts() {
-        $scripts = array(
+        $da_scripts = array(
             array(
                 'handle'  => 'gf_eee_admin',
                 'src'     => $this->get_base_url() . '/assets/js/admin.js',
@@ -817,16 +828,17 @@ class GF_External_Entry_Export extends GFAddOn {
             ),
         );
 
-        return array_merge( parent::scripts(), $scripts );
+        return array_merge( parent::scripts(), $da_scripts );
     }
 
     /**
-     * Styles to enqueue.
+     * styles we need to load up
+     * enqueuin our admin css
      *
      * @return array
      */
     public function styles() {
-        $styles = array(
+        $da_styles = array(
             array(
                 'handle'  => 'gf_eee_admin',
                 'src'     => $this->get_base_url() . '/assets/css/admin.css',
@@ -839,193 +851,198 @@ class GF_External_Entry_Export extends GFAddOn {
             ),
         );
 
-        return array_merge( parent::styles(), $styles );
+        return array_merge( parent::styles(), $da_styles );
     }
 
     /**
-     * AJAX: Generate export link.
+     * ajax handler for makin da export link
+     * this is called when admin clicks generate button
      *
      * @return void
      */
-    public function ajax_generate_link() {
+    public function ajax_make_da_link() {
         check_ajax_referer( 'gf_eee_admin', 'nonce' );
 
         if ( ! $this->current_user_can_any( array( 'gf_external_entry_export_manage_links', 'gravityforms_edit_entries', 'manage_options' ) ) ) {
             wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'gf-external-entry-export' ) ) );
         }
 
-        $form_id     = absint( rgpost( 'form_id' ) );
-        $fields      = array_map( 'sanitize_text_field', (array) rgpost( 'fields' ) );
-        $expiration  = absint( rgpost( 'expiration' ) );
-        $start_date  = sanitize_text_field( rgpost( 'start_date' ) );
-        $end_date    = sanitize_text_field( rgpost( 'end_date' ) );
-        $status      = sanitize_text_field( rgpost( 'status' ) );
-        $description = sanitize_text_field( rgpost( 'description' ) );
+        $da_form_id     = absint( rgpost( 'form_id' ) );
+        $da_fields      = array_map( 'sanitize_text_field', (array) rgpost( 'fields' ) );
+        $da_expiration  = absint( rgpost( 'expiration' ) );
+        $da_start_date  = sanitize_text_field( rgpost( 'start_date' ) );
+        $da_end_date    = sanitize_text_field( rgpost( 'end_date' ) );
+        $da_status      = sanitize_text_field( rgpost( 'status' ) );
+        $da_description = sanitize_text_field( rgpost( 'description' ) );
 
-        if ( ! $form_id ) {
+        if ( ! $da_form_id ) {
             wp_send_json_error( array( 'message' => esc_html__( 'Invalid form ID.', 'gf-external-entry-export' ) ) );
         }
 
-        // Validate form export is enabled
-        $form_settings = $this->get_form_settings( GFAPI::get_form( $form_id ) );
-        if ( empty( $form_settings['enable_export'] ) ) {
+        // makin sure export is enabled for this form
+        $da_form_settings = $this->get_form_settings( GFAPI::get_form( $da_form_id ) );
+        if ( empty( $da_form_settings['enable_export'] ) ) {
             wp_send_json_error( array( 'message' => esc_html__( 'External export is not enabled for this form.', 'gf-external-entry-export' ) ) );
         }
 
-        $token_data = array(
-            'form_id'     => $form_id,
-            'fields'      => $fields,
-            'start_date'  => $start_date,
-            'end_date'    => $end_date,
-            'status'      => $status ?: 'active',
+        $da_token_data = array(
+            'form_id'     => $da_form_id,
+            'fields'      => $da_fields,
+            'start_date'  => $da_start_date,
+            'end_date'    => $da_end_date,
+            'status'      => $da_status ?: 'active',
             'created_by'  => get_current_user_id(),
-            'description' => $description,
+            'description' => $da_description,
         );
 
-        $result = $this->token_handler->generate_token( $token_data, $expiration );
+        $da_result = $this->token_controller->make_da_token( $da_token_data, $da_expiration );
 
-        if ( is_wp_error( $result ) ) {
-            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+        if ( is_wp_error( $da_result ) ) {
+            wp_send_json_error( array( 'message' => $da_result->get_error_message() ) );
         }
 
-        // Return the form-level credentials.
-        $result['client_username'] = rgar( $form_settings, 'export_username', '' );
-        $result['client_password'] = rgar( $form_settings, 'export_password', '' );
+        // sendin back the form-level credentials too
+        $da_result['client_username'] = rgar( $da_form_settings, 'export_username', '' );
+        $da_result['client_password'] = rgar( $da_form_settings, 'export_password', '' );
 
-        wp_send_json_success( $result );
+        wp_send_json_success( $da_result );
     }
 
     /**
-     * AJAX: Revoke export link.
+     * ajax handler for killin da export link
+     * revokes a link so it cant be used no more
      *
      * @return void
      */
-    public function ajax_revoke_link() {
+    public function ajax_kill_da_link() {
         check_ajax_referer( 'gf_eee_admin', 'nonce' );
 
         if ( ! $this->current_user_can_any( array( 'gf_external_entry_export_manage_links', 'gravityforms_edit_entries', 'manage_options' ) ) ) {
             wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'gf-external-entry-export' ) ) );
         }
 
-        $token_id = sanitize_text_field( rgpost( 'token_id' ) );
+        $da_token_id = sanitize_text_field( rgpost( 'token_id' ) );
 
-        if ( ! $token_id ) {
+        if ( ! $da_token_id ) {
             wp_send_json_error( array( 'message' => esc_html__( 'Invalid token ID.', 'gf-external-entry-export' ) ) );
         }
 
-        $result = $this->token_handler->revoke_token( $token_id );
+        $da_result = $this->token_controller->kill_da_token( $da_token_id );
 
-        if ( is_wp_error( $result ) ) {
-            wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+        if ( is_wp_error( $da_result ) ) {
+            wp_send_json_error( array( 'message' => $da_result->get_error_message() ) );
         }
 
         wp_send_json_success( array( 'message' => esc_html__( 'Link revoked successfully.', 'gf-external-entry-export' ) ) );
     }
 
     /**
-     * AJAX: Regenerate form-level export credentials.
-     *
-     * Generates a new username/password pair, hashes the password, persists
-     * settings, and returns the raw password to show once.
+     * ajax handler for remaking form credentials
+     * generates new username/password combo for a form
      *
      * @return void
      */
-    public function ajax_regenerate_creds() {
+    public function ajax_remake_creds() {
         check_ajax_referer( 'gf_eee_admin', 'nonce' );
 
         if ( ! $this->current_user_can_any( array( 'gf_external_entry_export_form_settings', 'gravityforms_edit_forms', 'manage_options' ) ) ) {
             wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'gf-external-entry-export' ) ) );
         }
 
-        $form_id = absint( rgpost( 'form_id' ) );
-        if ( ! $form_id ) {
+        $da_form_id = absint( rgpost( 'form_id' ) );
+        if ( ! $da_form_id ) {
             wp_send_json_error( array( 'message' => esc_html__( 'Invalid form ID.', 'gf-external-entry-export' ) ) );
         }
 
-        $form          = GFAPI::get_form( $form_id );
-        $form_settings = $this->get_form_settings( $form );
-        if ( ! is_array( $form_settings ) ) {
-            $form_settings = array();
+        $da_form          = GFAPI::get_form( $da_form_id );
+        $da_form_settings = $this->get_form_settings( $da_form );
+        if ( ! is_array( $da_form_settings ) ) {
+            $da_form_settings = array();
         }
 
-        $new_username    = 'export_' . bin2hex( random_bytes( 6 ) );
-        $raw_password    = bin2hex( random_bytes( 16 ) );
+        $da_new_username = 'export_' . bin2hex( random_bytes( 6 ) );
+        $da_raw_password = bin2hex( random_bytes( 16 ) );
 
-        $form_settings['export_username'] = $new_username;
-        $form_settings['export_password'] = $raw_password;
-        $this->save_form_settings( $form, $form_settings );
+        $da_form_settings['export_username'] = $da_new_username;
+        $da_form_settings['export_password'] = $da_raw_password;
+        $this->save_form_settings( $da_form, $da_form_settings );
 
         wp_send_json_success( array(
-            'username' => $new_username,
-            'password' => $raw_password,
+            'username' => $da_new_username,
+            'password' => $da_raw_password,
         ) );
     }
 
     /**
-     * AJAX: Get export links for a form.
+     * ajax handler for grabbin export links for a form
+     * returns all active links for the admin ui
      *
      * @return void
      */
-    public function ajax_get_links() {
+    public function ajax_grab_links() {
         check_ajax_referer( 'gf_eee_admin', 'nonce' );
 
         if ( ! $this->current_user_can_any( array( 'gf_external_entry_export_manage_links', 'gravityforms_edit_entries', 'manage_options' ) ) ) {
             wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'gf-external-entry-export' ) ) );
         }
 
-        $form_id = absint( rgpost( 'form_id' ) );
+        $da_form_id = absint( rgpost( 'form_id' ) );
 
-        if ( ! $form_id ) {
+        if ( ! $da_form_id ) {
             wp_send_json_error( array( 'message' => esc_html__( 'Invalid form ID.', 'gf-external-entry-export' ) ) );
         }
 
-        $links = $this->token_handler->get_tokens_for_form( $form_id );
+        $da_links = $this->token_controller->grab_tokens_for_form( $da_form_id );
 
-        wp_send_json_success( array( 'links' => $links ) );
+        wp_send_json_success( array( 'links' => $da_links ) );
     }
 
     /**
-     * Get base URL for this addon.
+     * gettin the base url for this addon
+     * used for asset loading n stuff
      *
-     * @param string $full_path Optional full path to plugin file.
+     * @param string $da_full_path optional full path to plugin file
      * @return string
      */
-    public function get_base_url( $full_path = '' ) {
-        if ( empty( $full_path ) ) {
-            $full_path = $this->_full_path;
+    public function get_base_url( $da_full_path = '' ) {
+        if ( empty( $da_full_path ) ) {
+            $da_full_path = $this->_full_path;
         }
-        return plugins_url( '', $full_path );
+        return plugins_url( '', $da_full_path );
     }
 
     /**
-     * Get base path for this addon.
+     * gettin the base path for this addon
+     * used for file includes n stuff
      *
-     * @param string $full_path Optional full path to plugin file.
+     * @param string $da_full_path optional full path to plugin file
      * @return string
      */
-    public function get_base_path( $full_path = '' ) {
-        if ( empty( $full_path ) ) {
-            $full_path = $this->_full_path;
+    public function get_base_path( $da_full_path = '' ) {
+        if ( empty( $da_full_path ) ) {
+            $da_full_path = $this->_full_path;
         }
-        return plugin_dir_path( $full_path );
+        return plugin_dir_path( $da_full_path );
     }
 
     /**
-     * Create custom plugin page for managing export links.
+     * creatin our custom plugin page
+     * this is the main overview page for all forms
      *
      * @return void
      */
     public function plugin_page() {
-        $this->render_link_management_page();
+        $this->render_overview_page();
     }
 
     /**
-     * Render the link management page.
+     * renderin the link managment overview page
+     * shows all forms and their export status
      *
      * @return void
      */
-    private function render_link_management_page() {
-        $forms = GFAPI::get_forms();
+    private function render_overview_page() {
+        $da_forms = GFAPI::get_forms();
         ?>
         <div class="wrap gf-eee-management">
             <h1><?php esc_html_e( 'External Downloads Overview', 'gf-external-entry-export' ); ?></h1>
@@ -1043,27 +1060,27 @@ class GF_External_Entry_Export extends GFAddOn {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if ( empty( $forms ) ) : ?>
+                    <?php if ( empty( $da_forms ) ) : ?>
                         <tr><td colspan="4"><?php esc_html_e( 'No forms found.', 'gf-external-entry-export' ); ?></td></tr>
                     <?php else : ?>
-                        <?php foreach ( $forms as $form ) :
-                            $form_settings = $this->get_form_settings( $form );
-                            $is_enabled    = ! empty( $form_settings['enable_export'] );
-                            $active_links  = $is_enabled ? $this->token_handler->get_tokens_for_form( $form['id'] ) : array();
-                            $settings_url  = admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=' . $this->_slug . '&id=' . $form['id'] );
+                        <?php foreach ( $da_forms as $da_form ) :
+                            $da_form_settings = $this->get_form_settings( $da_form );
+                            $is_turned_on     = ! empty( $da_form_settings['enable_export'] );
+                            $da_active_links  = $is_turned_on ? $this->token_controller->grab_tokens_for_form( $da_form['id'] ) : array();
+                            $da_settings_url  = admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=' . $this->_slug . '&id=' . $da_form['id'] );
                         ?>
                             <tr>
-                                <td><strong><?php echo esc_html( $form['title'] ); ?></strong></td>
+                                <td><strong><?php echo esc_html( $da_form['title'] ); ?></strong></td>
                                 <td>
-                                    <?php if ( $is_enabled ) : ?>
+                                    <?php if ( $is_turned_on ) : ?>
                                         <span style="color:#46b450;">&#10003; <?php esc_html_e( 'Enabled', 'gf-external-entry-export' ); ?></span>
                                     <?php else : ?>
                                         <span style="color:#999;">&#10007; <?php esc_html_e( 'Disabled', 'gf-external-entry-export' ); ?></span>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo (int) count( $active_links ); ?></td>
+                                <td><?php echo (int) count( $da_active_links ); ?></td>
                                 <td>
-                                    <a href="<?php echo esc_url( $settings_url ); ?>" class="button button-small">
+                                    <a href="<?php echo esc_url( $da_settings_url ); ?>" class="button button-small">
                                         <?php esc_html_e( 'Manage Downloads', 'gf-external-entry-export' ); ?>
                                     </a>
                                 </td>
@@ -1077,7 +1094,7 @@ class GF_External_Entry_Export extends GFAddOn {
     }
 
     /**
-     * Plugin page title.
+     * plugin page title for the admin menu
      *
      * @return string
      */
@@ -1086,24 +1103,25 @@ class GF_External_Entry_Export extends GFAddOn {
     }
 
     /**
-     * Uninstall cleanup.
+     * cleanup when plugin is uninstalled
+     * droppin our custom tables and options
      *
      * @return void
      */
     public function uninstall() {
         global $wpdb;
 
-        // Remove tokens table
-        $table_name = $wpdb->prefix . 'gf_eee_tokens';
+        // gettin rid of the tokens table
+        $da_table_name = $wpdb->prefix . 'gf_eee_tokens';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Uninstall cleanup of plugin's custom table; table name is wpdb->prefix + hardcoded string.
-        $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" );
+        $wpdb->query( "DROP TABLE IF EXISTS {$da_table_name}" );
 
-        // Remove logs table
-        $logs_table = $wpdb->prefix . 'gf_eee_access_logs';
+        // gettin rid of the logs table too
+        $da_logs_table = $wpdb->prefix . 'gf_eee_access_logs';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Uninstall cleanup of plugin's custom table; table name is wpdb->prefix + hardcoded string.
-        $wpdb->query( "DROP TABLE IF EXISTS {$logs_table}" );
+        $wpdb->query( "DROP TABLE IF EXISTS {$da_logs_table}" );
 
-        // Remove options
+        // cleanin up our options
         delete_option( 'gf_eee_db_version' );
     }
 }

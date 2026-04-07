@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- New entries will be automatically added here by GitHub Actions -->
 
+## [1.0.2] - 2026-04-07
+
+### Changed
+- Refactored code with casual better conventions and clearer instructions for future maintenance
+- All functionality remains identical to 1.0.1
+
 ## [1.0.1] - 2026-03-30
 
 ### Security

@@ -1,7 +1,8 @@
 /**
  * GF External Entry Export - Admin JavaScript
  *
- * Handles link generation, copying, and management UI.
+ * handles all the link generaton, copyin, and managment ui stuff
+ * basically makes the admin page work
  *
  * @package GF_External_Entry_Export
  */
@@ -9,8 +10,8 @@
 (function($) {
     'use strict';
 
-    // Localized strings available via gf_eee_admin_strings
-    var strings = window.gf_eee_admin_strings || {
+    // localized strings from php - gettin all the text we need
+    var da_strings = window.gf_eee_admin_strings || {
         nonce: '',
         generating: 'Generating...',
         copied: 'Copied!',
@@ -20,102 +21,105 @@
         error: 'An error occurred'
     };
 
-    // Detect if we're on a per-form settings page or the global overview page.
-    var formScopedId = null;
-    var isFormScoped = false;
+    // detectin if were on a per-form settings page or the global overview page
+    var da_form_id = null;
+    var is_form_page = false;
 
     /**
-     * Initialize admin functionality.
+     * startin up the admin functionalty
+     * this runs when the page loads
      */
-    function init() {
-        // Check for form management section (per-form settings page).
-        var $mgmt = $('.gf-eee-form-management');
-        if ($mgmt.length) {
-            formScopedId = $mgmt.data('form-id');
-            isFormScoped = !!formScopedId;
+    function start_it_up() {
+        // checkin for form managment section (per-form settings page)
+        var $da_mgmt = $('.gf-eee-form-management');
+        if ($da_mgmt.length) {
+            da_form_id = $da_mgmt.data('form-id');
+            is_form_page = !!da_form_id;
         }
-        // Fallback: hidden input on form settings page.
-        if (!isFormScoped) {
-            var $hidden = $('#gf-eee-form-id[type="hidden"]');
-            if ($hidden.length && $hidden.val()) {
-                formScopedId = $hidden.val();
-                isFormScoped = true;
+        // fallback: hidden input on form settings page
+        if (!is_form_page) {
+            var $da_hidden = $('#gf-eee-form-id[type="hidden"]');
+            if ($da_hidden.length && $da_hidden.val()) {
+                da_form_id = $da_hidden.val();
+                is_form_page = true;
             }
         }
 
-        bindEvents();
+        hookup_da_events();
 
-        // Inject "Select All" checkbox for the Exportable Fields setting (runs first, no dependencies).
-        injectSelectAllForExportableFields();
+        // injectin "Select All" checkbox for the Exportable Fields setting
+        stick_in_select_all();
 
-        if (isFormScoped) {
-            // Auto-load fields and links for this form (uses REST API / AJAX).
+        if (is_form_page) {
+            // auto-loadin fields and links for this form
             try {
-                loadFormFields(formScopedId);
-            } catch (e) { /* wpApiSettings may not be available */ }
-            loadFormLinks(formScopedId);
+                load_da_form_fields(da_form_id);
+            } catch (e) { /* wpApiSettings may not be availalbe */ }
+            load_da_form_links(da_form_id);
         }
     }
 
     /**
-     * Inject a "Select All" checkbox above the Exportable Fields checkboxes.
+     * stickin in a "Select All" checkbox above the Exportable Fields checkboxes
+     * makes it easier to select everythin at once
      */
-    function injectSelectAllForExportableFields() {
-        var $fieldsContainer = $('#gform_setting_allowed_fields');
-        var $metaContainer = $('#gform_setting_include_meta');
-        if (!$fieldsContainer.length) return;
+    function stick_in_select_all() {
+        var $da_fields_container = $('#gform_setting_allowed_fields');
+        var $da_meta_container = $('#gform_setting_include_meta');
+        if (!$da_fields_container.length) return;
 
-        var $wrapper = $fieldsContainer.find('.gform-settings-input__container');
-        if (!$wrapper.length) return;
+        var $da_wrapper = $da_fields_container.find('.gform-settings-input__container');
+        if (!$da_wrapper.length) return;
 
-        // Collect checkboxes from both Exportable Fields and Include Entry Metadata
-        var $fieldChoices = $wrapper.find('input[type="checkbox"]');
-        var $metaChoices = $metaContainer.length ? $metaContainer.find('.gform-settings-input__container input[type="checkbox"]') : $();
-        var $allChoices = $fieldChoices.add($metaChoices);
+        // collectin checkboxes from both Exportable Fields and Include Entry Metadata
+        var $da_field_choices = $da_wrapper.find('input[type="checkbox"]');
+        var $da_meta_choices = $da_meta_container.length ? $da_meta_container.find('.gform-settings-input__container input[type="checkbox"]') : $();
+        var $da_all_choices = $da_field_choices.add($da_meta_choices);
 
-        if (!$allChoices.length) return;
+        if (!$da_all_choices.length) return;
 
-        var allChecked = $allChoices.length === $allChoices.filter(':checked').length;
+        var all_checked = $da_all_choices.length === $da_all_choices.filter(':checked').length;
 
-        var $selectAll = $(
+        var $da_select_all = $(
             '<div class="gf-eee-select-all-wrap" style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #ddd;">' +
             '<label style="font-weight:600;cursor:pointer;">' +
-            '<input type="checkbox" id="gf-eee-select-all-fields"' + (allChecked ? ' checked' : '') + '> ' +
+            '<input type="checkbox" id="gf-eee-select-all-fields"' + (all_checked ? ' checked' : '') + '> ' +
             'Select All' +
             '</label>' +
             '</div>'
         );
 
-        $wrapper.prepend($selectAll);
+        $da_wrapper.prepend($da_select_all);
 
-        // Toggle all checkboxes and their hidden inputs
+        // togglin all checkboxes and their hidden inputs
         $('#gf-eee-select-all-fields').on('change', function() {
-            var checked = $(this).prop('checked');
-            $allChoices.each(function() {
-                $(this).prop('checked', checked);
-                var $hidden = $(this).prev('input[type="hidden"]');
-                if ($hidden.length) {
-                    $hidden.val(checked ? '1' : '0').trigger('change');
+            var da_checked = $(this).prop('checked');
+            $da_all_choices.each(function() {
+                $(this).prop('checked', da_checked);
+                var $da_hidden = $(this).prev('input[type="hidden"]');
+                if ($da_hidden.length) {
+                    $da_hidden.val(da_checked ? '1' : '0').trigger('change');
                 }
             });
         });
 
-        // Update "Select All" state when individual checkboxes change
-        $allChoices.on('change', function() {
-            var allNowChecked = $allChoices.length === $allChoices.filter(':checked').length;
-            $('#gf-eee-select-all-fields').prop('checked', allNowChecked);
+        // updatin "Select All" state when individual checkboxes change
+        $da_all_choices.on('change', function() {
+            var all_now_checked = $da_all_choices.length === $da_all_choices.filter(':checked').length;
+            $('#gf-eee-select-all-fields').prop('checked', all_now_checked);
         });
     }
 
     /**
-     * Bind event handlers.
+     * hookin up all the event handlers
+     * binds clicks and stuff to the right functions
      */
-    function bindEvents() {
-        // Form selection change (only on global page where it's a <select>)
+    function hookup_da_events() {
+        // form selecton change (only on global page where its a <select>)
         $('#gf-eee-form-id').filter('select').on('change', function() {
-            var formId = $(this).val();
-            if (formId) {
-                loadFormFields(formId);
+            var da_selected_form = $(this).val();
+            if (da_selected_form) {
+                load_da_form_fields(da_selected_form);
             } else {
                 $('#gf-eee-fields-container').html(
                     '<p class="description">Select a form to see available fields.</p>'
@@ -123,190 +127,193 @@
             }
         });
 
-        // Generate link — button click (per-form page uses <button>, not form submit)
+        // generate link button click
         $('#gf-eee-generate-btn').on('click', function(e) {
             e.preventDefault();
-            generateLink();
+            make_da_link();
         });
 
-        // Also support form submit for backward compat
+        // also supportin form submit for backward compat
         $('#gf-eee-generate-form').on('submit', function(e) {
             e.preventDefault();
-            generateLink();
+            make_da_link();
         });
 
-        // Copy button
+        // copy button
         $('#gf-eee-copy-btn').on('click', function() {
-            copyToClipboard();
+            copy_to_clipboard();
         });
 
-        // Copy individual credential fields
+        // copy individual credential fields
         $(document).on('click', '.gf-eee-copy-field', function() {
-            var targetId = $(this).data('target');
-            var text = $('#' + targetId).text();
-            var $btn = $(this);
-            var originalText = $btn.text();
+            var da_target_id = $(this).data('target');
+            var da_text = $('#' + da_target_id).text();
+            var $da_btn = $(this);
+            var da_original_text = $da_btn.text();
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(function() {
-                    $btn.text(strings.copied);
-                    setTimeout(function() { $btn.text(originalText); }, 2000);
+                navigator.clipboard.writeText(da_text).then(function() {
+                    $da_btn.text(da_strings.copied);
+                    setTimeout(function() { $da_btn.text(da_original_text); }, 2000);
                 });
             } else {
-                var $temp = $('<input>');
-                $('body').append($temp);
-                $temp.val(text).select();
+                var $da_temp = $('<input>');
+                $('body').append($da_temp);
+                $da_temp.val(da_text).select();
                 document.execCommand('copy');
-                $temp.remove();
-                $btn.text(strings.copied);
-                setTimeout(function() { $btn.text(originalText); }, 2000);
+                $da_temp.remove();
+                $da_btn.text(da_strings.copied);
+                setTimeout(function() { $da_btn.text(da_original_text); }, 2000);
             }
         });
 
-        // Revoke link (delegated)
+        // revoke link (delegated)
         $(document).on('click', '.gf-eee-revoke-btn', function(e) {
             e.preventDefault();
-            var tokenId = $(this).data('token-id');
-            revokeLink(tokenId, $(this));
+            var da_token_id = $(this).data('token-id');
+            kill_da_link(da_token_id, $(this));
         });
 
-        // Regenerate credentials button — server-side so password is hashed securely
+        // regenerate credentials button
         $(document).on('click', '#gf-eee-regenerate-creds', function() {
             if (!confirm('Regenerating will invalidate the current credentials. Any external clients using the old credentials will lose access.\n\nContinue?')) {
                 return;
             }
-            var formId = isFormScoped ? formScopedId : ($('#gf-eee-form-id').val() || $('input[name="form_id"]').val());
-            if (!formId) {
+            var da_selected_form = is_form_page ? da_form_id : ($('#gf-eee-form-id').val() || $('input[name="form_id"]').val());
+            if (!da_selected_form) {
                 alert('Could not determine form ID.');
                 return;
             }
-            var $btn = $(this);
-            $btn.prop('disabled', true).text('Regenerating...');
+            var $da_btn = $(this);
+            $da_btn.prop('disabled', true).text('Regenerating...');
             $.post(ajaxurl, {
                 action: 'gf_eee_regenerate_creds',
-                nonce: strings.nonce,
-                form_id: formId
-            }, function(response) {
-                $btn.prop('disabled', false).text('Regenerate Credentials');
-                if (response.success) {
-                    $('#gf-eee-cred-username').text(response.data.username);
-                    $('#gf-eee-cred-password').text(response.data.password);
+                nonce: da_strings.nonce,
+                form_id: da_selected_form
+            }, function(da_response) {
+                $da_btn.prop('disabled', false).text('Regenerate Credentials');
+                if (da_response.success) {
+                    $('#gf-eee-cred-username').text(da_response.data.username);
+                    $('#gf-eee-cred-password').text(da_response.data.password);
                 } else {
-                    alert((response.data && response.data.message) || strings.error);
+                    alert((da_response.data && da_response.data.message) || da_strings.error);
                 }
             }).fail(function() {
-                $btn.prop('disabled', false).text('Regenerate Credentials');
-                alert(strings.error);
+                $da_btn.prop('disabled', false).text('Regenerate Credentials');
+                alert(da_strings.error);
             });
         });
 
-        // Generate secret key button
+        // generate secret key button
         window.gfEEEGenerateKey = function() {
-            var key = generateRandomKey(64);
-            $('input[name="_gform_setting_secret_key"]').val(key);
+            var da_key = make_random_key(64);
+            $('input[name="_gform_setting_secret_key"]').val(da_key);
         };
     }
 
     /**
-     * Load form fields for selection.
+     * loadin form fields for selecton
+     * gets the fields from the api and shows em
      *
-     * @param {number} formId Form ID.
+     * @param {number} da_selected_form form id
      */
-    function loadFormFields(formId) {
-        var $container = $('#gf-eee-fields-container');
-        $container.html('<p class="description">Loading fields...</p>');
+    function load_da_form_fields(da_selected_form) {
+        var $da_container = $('#gf-eee-fields-container');
+        $da_container.html('<p class="description">Loading fields...</p>');
 
         $.ajax({
-            url: wpApiSettings.root + 'gf-eee/v1/form-fields/' + formId,
+            url: wpApiSettings.root + 'gf-eee/v1/form-fields/' + da_selected_form,
             method: 'GET',
             beforeSend: function(xhr) {
                 xhr.setRequestHeader('X-WP-Nonce', wpApiSettings.nonce);
             },
-            success: function(response) {
-                renderFieldSelection(response, $container);
+            success: function(da_response) {
+                show_field_checkboxes(da_response, $da_container);
             },
             error: function(xhr) {
-                var message = xhr.responseJSON && xhr.responseJSON.message
+                var da_message = xhr.responseJSON && xhr.responseJSON.message
                     ? xhr.responseJSON.message
-                    : strings.error;
-                $container.html('<p class="error">' + message + '</p>');
+                    : da_strings.error;
+                $da_container.html('<p class="error">' + da_message + '</p>');
             }
         });
     }
 
     /**
-     * Render field selection checkboxes.
+     * showin field selecton checkboxes
+     * renders all the checkboxes for pickin fields
      *
-     * @param {Object} response   API response.
-     * @param {jQuery} $container Container element.
+     * @param {Object} da_response   api response
+     * @param {jQuery} $da_container container element
      */
-    function renderFieldSelection(response, $container) {
-        if (!response.export_enabled) {
-            $container.html(
+    function show_field_checkboxes(da_response, $da_container) {
+        if (!da_response.export_enabled) {
+            $da_container.html(
                 '<p class="notice notice-warning" style="padding: 10px;">' +
                 'External export is not enabled for this form. ' +
-                '<a href="' + getFormSettingsUrl(response.form_id) + '">Enable it in form settings</a>.' +
+                '<a href="' + get_form_settings_link(da_response.form_id) + '">Enable it in form settings</a>.' +
                 '</p>'
             );
             return;
         }
 
-        if (!response.fields || response.fields.length === 0) {
-            $container.html('<p class="description">No exportable fields configured for this form.</p>');
+        if (!da_response.fields || da_response.fields.length === 0) {
+            $da_container.html('<p class="description">No exportable fields configured for this form.</p>');
             return;
         }
 
-        var html = '<fieldset class="gf-eee-field-selection">';
-        html += '<legend class="screen-reader-text">Select fields to export</legend>';
-        html += '<label class="gf-eee-select-all"><input type="checkbox" id="gf-eee-select-all"> <strong>Select All Allowed Fields</strong></label>';
-        html += '<div class="gf-eee-fields-list">';
+        var da_html = '<fieldset class="gf-eee-field-selection">';
+        da_html += '<legend class="screen-reader-text">Select fields to export</legend>';
+        da_html += '<label class="gf-eee-select-all"><input type="checkbox" id="gf-eee-select-all"> <strong>Select All Allowed Fields</strong></label>';
+        da_html += '<div class="gf-eee-fields-list">';
 
-        response.fields.forEach(function(field) {
-            var disabled = !field.is_allowed ? ' disabled' : '';
-            var checked = field.is_allowed ? ' checked' : '';
-            var className = field.is_allowed ? 'allowed' : 'not-allowed';
+        da_response.fields.forEach(function(da_field) {
+            var da_disabled = !da_field.is_allowed ? ' disabled' : '';
+            var da_checked = da_field.is_allowed ? ' checked' : '';
+            var da_classname = da_field.is_allowed ? 'allowed' : 'not-allowed';
 
-            html += '<label class="gf-eee-field-item ' + className + '">';
-            html += '<input type="checkbox" name="fields[]" value="' + field.setting + '"' + checked + disabled + '> ';
-            html += escapeHtml(field.label);
-            if (!field.is_allowed) {
-                html += ' <span class="gf-eee-not-allowed">(not enabled)</span>';
+            da_html += '<label class="gf-eee-field-item ' + da_classname + '">';
+            da_html += '<input type="checkbox" name="fields[]" value="' + da_field.setting + '"' + da_checked + da_disabled + '> ';
+            da_html += escape_da_html(da_field.label);
+            if (!da_field.is_allowed) {
+                da_html += ' <span class="gf-eee-not-allowed">(not enabled)</span>';
             }
-            html += '</label>';
+            da_html += '</label>';
         });
 
-        html += '</div>';
-        html += '</fieldset>';
+        da_html += '</div>';
+        da_html += '</fieldset>';
 
-        $container.html(html);
+        $da_container.html(da_html);
 
-        // Bind select all
+        // bindin select all
         $('#gf-eee-select-all').on('change', function() {
-            var checked = $(this).prop('checked');
-            $('.gf-eee-fields-list input[type="checkbox"]:not(:disabled)').prop('checked', checked);
+            var da_checked = $(this).prop('checked');
+            $('.gf-eee-fields-list input[type="checkbox"]:not(:disabled)').prop('checked', da_checked);
         });
     }
 
     /**
-     * Generate export link.
+     * makin da export link
+     * sends the ajax request to generate a new link
      */
-    function generateLink() {
-        var $btn = $('#gf-eee-generate-btn');
-        var $result = $('#gf-eee-result');
+    function make_da_link() {
+        var $da_btn = $('#gf-eee-generate-btn');
+        var $da_result = $('#gf-eee-result');
 
-        // Collect selected fields from the management section or form
-        var fields = [];
+        // collectin selected fields from the managment section or form
+        var da_fields = [];
         $('.gf-eee-form-management input[name="fields[]"]:checked, #gf-eee-generate-form input[name="fields[]"]:checked').each(function() {
-            fields.push($(this).val());
+            da_fields.push($(this).val());
         });
 
-        var formId = isFormScoped ? formScopedId : $('#gf-eee-form-id').val();
+        var da_selected_form = is_form_page ? da_form_id : $('#gf-eee-form-id').val();
 
-        var data = {
+        var da_data = {
             action: 'gf_eee_generate_link',
-            nonce: strings.nonce,
-            form_id: formId,
-            fields: fields,
+            nonce: da_strings.nonce,
+            form_id: da_selected_form,
+            fields: da_fields,
             description: $('#gf-eee-description').val(),
             expiration: $('#gf-eee-expiration').val(),
             start_date: $('#gf-eee-start-date').val(),
@@ -314,88 +321,91 @@
             status: $('#gf-eee-status').val()
         };
 
-        $btn.prop('disabled', true).text(strings.generating);
-        $result.addClass('hidden');
+        $da_btn.prop('disabled', true).text(da_strings.generating);
+        $da_result.addClass('hidden');
 
-        $.post(ajaxurl, data, function(response) {
-            $btn.prop('disabled', false).text('Generate Export Link');
+        $.post(ajaxurl, da_data, function(da_response) {
+            $da_btn.prop('disabled', false).text('Generate Export Link');
 
-            if (response.success) {
-                $('#gf-eee-url').val(response.data.url);
+            if (da_response.success) {
+                $('#gf-eee-url').val(da_response.data.url);
 
-                // Display client credentials (shown once only)
-                $('#gf-eee-client-username').text(response.data.client_username);
-                $('#gf-eee-client-password').text(response.data.client_password);
+                // displayin client credentials (shown once only)
+                $('#gf-eee-client-username').text(da_response.data.client_username);
+                $('#gf-eee-client-password').text(da_response.data.client_password);
 
-                var expiryText = response.data.expires_at
-                    ? 'Expires: ' + response.data.expires_at
+                var da_expiry_text = da_response.data.expires_at
+                    ? 'Expires: ' + da_response.data.expires_at
                     : 'This link never expires';
-                $('#gf-eee-expiry-info').text(expiryText);
+                $('#gf-eee-expiry-info').text(da_expiry_text);
 
-                $result.removeClass('hidden');
+                $da_result.removeClass('hidden');
 
-                // Refresh links list
-                if (isFormScoped) {
-                    loadFormLinks(formScopedId);
+                // refreshin links list
+                if (is_form_page) {
+                    load_da_form_links(da_form_id);
                 }
             } else {
-                alert(response.data.message || strings.error);
+                alert(da_response.data.message || da_strings.error);
             }
         }).fail(function() {
-            $btn.prop('disabled', false).text('Generate Export Link');
-            alert(strings.error);
+            $da_btn.prop('disabled', false).text('Generate Export Link');
+            alert(da_strings.error);
         });
     }
 
     /**
-     * Copy URL to clipboard.
+     * copyin url to clipboard
+     * uses the fancy new api or falls back to old way
      */
-    function copyToClipboard() {
-        var $input = $('#gf-eee-url');
-        var $btn = $('#gf-eee-copy-btn');
-        var originalText = $btn.text();
+    function copy_to_clipboard() {
+        var $da_input = $('#gf-eee-url');
+        var $da_btn = $('#gf-eee-copy-btn');
+        var da_original_text = $da_btn.text();
 
-        $input.select();
+        $da_input.select();
 
         try {
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText($input.val()).then(function() {
-                    $btn.text(strings.copied);
+                navigator.clipboard.writeText($da_input.val()).then(function() {
+                    $da_btn.text(da_strings.copied);
                     setTimeout(function() {
-                        $btn.text(originalText);
+                        $da_btn.text(da_original_text);
                     }, 2000);
                 }).catch(function() {
-                    fallbackCopy($input, $btn, originalText);
+                    fallback_copy($da_input, $da_btn, da_original_text);
                 });
             } else {
-                fallbackCopy($input, $btn, originalText);
+                fallback_copy($da_input, $da_btn, da_original_text);
             }
         } catch (e) {
-            $btn.text(strings.copy_failed);
+            $da_btn.text(da_strings.copy_failed);
             setTimeout(function() {
-                $btn.text(originalText);
+                $da_btn.text(da_original_text);
             }, 2000);
         }
     }
 
     /**
-     * Fallback copy method.
+     * fallback copy method for older browsers
+     * uses the old execCommand way
      */
-    function fallbackCopy($input, $btn, originalText) {
-        $input[0].select();
-        var success = document.execCommand('copy');
-        $btn.text(success ? strings.copied : strings.copy_failed);
+    function fallback_copy($da_input, $da_btn, da_original_text) {
+        $da_input[0].select();
+        var da_success = document.execCommand('copy');
+        $da_btn.text(da_success ? da_strings.copied : da_strings.copy_failed);
         setTimeout(function() {
-            $btn.text(originalText);
+            $da_btn.text(da_original_text);
         }, 2000);
     }
 
     /**
-     * Load active export links (global — all forms).
+     * loadin active export links for all forms
+     * for the global overview page
      */
-    function loadActiveLinks() {
-        var $tbody = $('#gf-eee-links-table tbody');
-        if (!$tbody.length) return;
+    function load_da_active_links() {
+        var $da_tbody = $('#gf-eee-links-table tbody');
+        if (!$da_tbody.length) return;
 
         $.ajax({
             url: wpApiSettings.root + 'gf-eee/v1/links',
@@ -403,177 +413,184 @@
             beforeSend: function(xhr) {
                 xhr.setRequestHeader('X-WP-Nonce', wpApiSettings.nonce);
             },
-            success: function(response) {
-                renderLinksTable(response.links, $tbody, true);
+            success: function(da_response) {
+                show_links_table(da_response.links, $da_tbody, true);
             },
             error: function() {
-                $tbody.html('<tr><td colspan="7">Failed to load links.</td></tr>');
+                $da_tbody.html('<tr><td colspan="7">Failed to load links.</td></tr>');
             }
         });
     }
 
     /**
-     * Load export links for a specific form (form settings page).
+     * loadin export links for a specific form
+     * for the form settings page
      *
-     * @param {number} formId Form ID.
+     * @param {number} da_selected_form form id
      */
-    function loadFormLinks(formId) {
-        var $tbody = $('#gf-eee-links-table tbody');
-        if (!$tbody.length) return;
+    function load_da_form_links(da_selected_form) {
+        var $da_tbody = $('#gf-eee-links-table tbody');
+        if (!$da_tbody.length) return;
 
         $.post(ajaxurl, {
             action: 'gf_eee_get_links',
-            nonce: strings.nonce,
-            form_id: formId
-        }, function(response) {
-            if (response.success) {
-                renderLinksTable(response.data.links, $tbody, false);
+            nonce: da_strings.nonce,
+            form_id: da_selected_form
+        }, function(da_response) {
+            if (da_response.success) {
+                show_links_table(da_response.data.links, $da_tbody, false);
             } else {
-                $tbody.html('<tr><td colspan="6">Failed to load links.</td></tr>');
+                $da_tbody.html('<tr><td colspan="6">Failed to load links.</td></tr>');
             }
         }).fail(function() {
-            $tbody.html('<tr><td colspan="6">Failed to load links.</td></tr>');
+            $da_tbody.html('<tr><td colspan="6">Failed to load links.</td></tr>');
         });
     }
 
     /**
-     * Render links table.
+     * showin the links table
+     * renders all the active links in the table
      *
-     * @param {Array}   links       Links array.
-     * @param {jQuery}  $tbody      Table body element.
-     * @param {boolean} showForm    Whether to show the form name column.
+     * @param {Array}   da_links     links array
+     * @param {jQuery}  $da_tbody    table body element
+     * @param {boolean} show_form    whether to show the form name column
      */
-    function renderLinksTable(links, $tbody, showForm) {
-        var colCount = showForm ? 7 : 6;
+    function show_links_table(da_links, $da_tbody, show_form) {
+        var da_col_count = show_form ? 7 : 6;
 
-        if (!links || links.length === 0) {
-            $tbody.html('<tr><td colspan="' + colCount + '">No active export links.</td></tr>');
+        if (!da_links || da_links.length === 0) {
+            $da_tbody.html('<tr><td colspan="' + da_col_count + '">No active export links.</td></tr>');
             return;
         }
 
-        var html = '';
-        links.forEach(function(link) {
-            html += '<tr data-token-id="' + escapeHtml(link.token_id) + '">';
-            if (showForm) {
-                html += '<td>' + escapeHtml(link.form_title) + '</td>';
+        var da_html = '';
+        da_links.forEach(function(da_link) {
+            da_html += '<tr data-token-id="' + escape_da_html(da_link.token_id) + '">';
+            if (show_form) {
+                da_html += '<td>' + escape_da_html(da_link.form_title) + '</td>';
             }
-            html += '<td>' + escapeHtml(link.description || '—') + '</td>';
-            html += '<td><code>' + escapeHtml(link.client_username || '—') + '</code></td>';
+            da_html += '<td>' + escape_da_html(da_link.description || '—') + '</td>';
+            da_html += '<td><code>' + escape_da_html(da_link.client_username || '—') + '</code></td>';
 
-            // Use formatted dates if available, fall back to raw values
-            var created = link.created_at_formatted || link.created_at || '—';
-            var expires = link.time_remaining || link.expires_at || 'Never';
-            var downloads = link.downloads_display ||
-                (link.download_count + ' / ' + (link.max_downloads > 0 ? link.max_downloads : '∞'));
+            // use formatted dates if availalbe, fall back to raw values
+            var da_created = da_link.created_at_formatted || da_link.created_at || '—';
+            var da_expires = da_link.time_remaining || da_link.expires_at || 'Never';
+            var da_downloads = da_link.downloads_display ||
+                (da_link.download_count + ' / ' + (da_link.max_downloads > 0 ? da_link.max_downloads : '∞'));
 
-            html += '<td>' + escapeHtml(created) + '</td>';
-            html += '<td>' + escapeHtml(expires) + '</td>';
-            html += '<td>' + escapeHtml(downloads) + '</td>';
-            html += '<td>';
-            html += '<button type="button" class="button button-small gf-eee-revoke-btn" data-token-id="' + escapeHtml(link.token_id) + '">Revoke</button>';
-            html += '</td>';
-            html += '</tr>';
+            da_html += '<td>' + escape_da_html(da_created) + '</td>';
+            da_html += '<td>' + escape_da_html(da_expires) + '</td>';
+            da_html += '<td>' + escape_da_html(da_downloads) + '</td>';
+            da_html += '<td>';
+            da_html += '<button type="button" class="button button-small gf-eee-revoke-btn" data-token-id="' + escape_da_html(da_link.token_id) + '">Revoke</button>';
+            da_html += '</td>';
+            da_html += '</tr>';
         });
 
-        $tbody.html(html);
+        $da_tbody.html(da_html);
     }
 
     /**
-     * Revoke an export link.
+     * killin da export link
+     * revokes a link so it cant be used no more
      *
-     * @param {string} tokenId Token ID.
-     * @param {jQuery} $btn    Button element.
+     * @param {string} da_token_id token id
+     * @param {jQuery} $da_btn     button element
      */
-    function revokeLink(tokenId, $btn) {
-        if (!confirm(strings.confirm_revoke)) {
+    function kill_da_link(da_token_id, $da_btn) {
+        if (!confirm(da_strings.confirm_revoke)) {
             return;
         }
 
-        var originalText = $btn.text();
-        $btn.prop('disabled', true).text('...');
+        var da_original_text = $da_btn.text();
+        $da_btn.prop('disabled', true).text('...');
 
         $.post(ajaxurl, {
             action: 'gf_eee_revoke_link',
-            nonce: strings.nonce,
-            token_id: tokenId
-        }, function(response) {
-            if (response.success) {
-                $btn.closest('tr').fadeOut(function() {
+            nonce: da_strings.nonce,
+            token_id: da_token_id
+        }, function(da_response) {
+            if (da_response.success) {
+                $da_btn.closest('tr').fadeOut(function() {
                     $(this).remove();
                     if ($('#gf-eee-links-table tbody tr').length === 0) {
-                        var colCount = isFormScoped ? 6 : 7;
+                        var da_col_count = is_form_page ? 6 : 7;
                         $('#gf-eee-links-table tbody').html(
-                            '<tr><td colspan="' + colCount + '">No active export links.</td></tr>'
+                            '<tr><td colspan="' + da_col_count + '">No active export links.</td></tr>'
                         );
                     }
                 });
             } else {
-                $btn.prop('disabled', false).text(originalText);
-                alert(response.data.message || strings.error);
+                $da_btn.prop('disabled', false).text(da_original_text);
+                alert(da_response.data.message || da_strings.error);
             }
         }).fail(function() {
-            $btn.prop('disabled', false).text(originalText);
-            alert(strings.error);
+            $da_btn.prop('disabled', false).text(da_original_text);
+            alert(da_strings.error);
         });
     }
 
     /**
-     * Get form settings URL.
+     * gettin form settings url
+     * builds the link to the form settings page
      *
-     * @param {number} formId Form ID.
-     * @return {string} URL.
+     * @param {number} da_selected_form form id
+     * @return {string} url
      */
-    function getFormSettingsUrl(formId) {
-        return 'admin.php?page=gf_edit_forms&view=settings&subview=gf-external-entry-export&id=' + formId;
+    function get_form_settings_link(da_selected_form) {
+        return 'admin.php?page=gf_edit_forms&view=settings&subview=gf-external-entry-export&id=' + da_selected_form;
     }
 
     /**
-     * Generate random key.
+     * makin a random key
+     * generates a random string for secret keys
      *
-     * @param {number} length Key length.
-     * @return {string} Random key.
+     * @param {number} da_length key length
+     * @return {string} random key
      */
-    function generateRandomKey(length) {
-        var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-        var key = '';
-        var array = new Uint32Array(length);
-        window.crypto.getRandomValues(array);
-        for (var i = 0; i < length; i++) {
-            key += chars[array[i] % chars.length];
+    function make_random_key(da_length) {
+        var da_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+        var da_key = '';
+        var da_array = new Uint32Array(da_length);
+        window.crypto.getRandomValues(da_array);
+        for (var i = 0; i < da_length; i++) {
+            da_key += da_chars[da_array[i] % da_chars.length];
         }
-        return key;
+        return da_key;
     }
 
     /**
-     * Generate random hex string.
+     * makin a random hex string
+     * generates random bytes in hex format
      *
-     * @param {number} bytes Number of bytes (output is 2x chars).
-     * @return {string} Hex string.
+     * @param {number} da_bytes number of bytes (output is 2x chars)
+     * @return {string} hex string
      */
-    function generateRandomHex(bytes) {
-        var array = new Uint8Array(bytes);
-        window.crypto.getRandomValues(array);
-        return Array.from(array, function(b) {
+    function make_random_hex(da_bytes) {
+        var da_array = new Uint8Array(da_bytes);
+        window.crypto.getRandomValues(da_array);
+        return Array.from(da_array, function(b) {
             return ('0' + b.toString(16)).slice(-2);
         }).join('');
     }
 
     /**
-     * Escape HTML entities.
+     * escapin html entities
+     * prevents xss by escapin special chars
      *
-     * @param {string} str String to escape.
-     * @return {string} Escaped string.
+     * @param {string} da_str string to escape
+     * @return {string} escaped string
      */
-    function escapeHtml(str) {
-        if (str === null || str === undefined) {
+    function escape_da_html(da_str) {
+        if (da_str === null || da_str === undefined) {
             return '';
         }
-        var div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
+        var da_div = document.createElement('div');
+        da_div.textContent = da_str;
+        return da_div.innerHTML;
     }
 
-    // Initialize on document ready
-    $(document).ready(init);
+    // startin everythin up when document is ready
+    $(document).ready(start_it_up);
 
 })(jQuery);
