@@ -58,4 +58,38 @@
         field.choices[index].isColumnRequired = checkbox.checked;
     };
 
+    /**
+     * when the main field-level "Required" checkbox is toggled ON,
+     * auto-check all column required checkboxes for list fields.
+     * this saves the admin from having to check each column individually
+     * when they want the whole thing required.
+     *
+     * we listen on the #field_required checkbox which calls
+     * SetFieldRequired(this.checked) via onclick in form_detail.php
+     */
+    $(document).on('click', '#field_required', function () {
+        var field = GetSelectedField();
+
+        // only do this for list fields with columns enabled
+        if (!field || GetInputType(field) !== 'list' || !field.enableColumns || !field.choices) {
+            return;
+        }
+
+        var isChecked = $(this).is(':checked');
+
+        // only auto-set when turning required ON, dont clear when turning OFF
+        // (admin might want the field optional but still keep specific columns required)
+        if (!isChecked) {
+            return;
+        }
+
+        // mark all columns as required
+        for (var i = 0; i < field.choices.length; i++) {
+            field.choices[i].isColumnRequired = true;
+        }
+
+        // refresh the column choices UI so the checkboxes reflect the new state
+        LoadFieldChoices(field);
+    });
+
 })(jQuery);

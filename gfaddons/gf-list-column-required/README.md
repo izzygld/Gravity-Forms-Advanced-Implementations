@@ -37,6 +37,7 @@ Required columns display an asterisk (**\***) in the column header, matching Gra
 | Layer | What Happens |
 |-------|-------------|
 | **Form Editor** | A "Required" checkbox is injected next to each column via GF's `gform_append_field_choice_option_list` JS callback. The `isColumnRequired` flag is stored on each choice object and saved automatically with the form JSON. |
+| **Auto-Require All** | When the main field-level "Required" rule is toggled ON, all columns are automatically marked as required too. You can then uncheck individual columns if needed. Toggling the field-level rule OFF does *not* clear column-level required flags. |
 | **Server Validation** | On submission, the `gform_field_validation` filter checks every row. If a row has any data at all, all required columns in that row must be filled. If all rows are empty, the first row is still validated — required columns mean "you gotta fill this in." |
 | **Front-End Rendering** | The `gform_field_content` filter adds a red asterisk to required column headers. The `gform_column_input_content` filter adds `aria-required="true"` to inputs for accessibility. |
 
