@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Changed**: based on wordpress revierwers team (`eda2615` - %Y->- (HEAD -> main, origin/main))
 - **Changed**: Refactor token handler class for improved readability and consistency (`6d03766` - %Y->- (HEAD -> main, origin/main))
 - **Changed**: Update .gitignore and README with plugin status and badge (`ecb8e29` - %Y->- (HEAD -> main, origin/main))
 - **Added**: Add user documentation, submission checklist, and enhance export handler with security improvements (`e29a6fe` - %Y->- (HEAD -> main, origin/main))
