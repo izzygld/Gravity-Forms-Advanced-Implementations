@@ -1,4 +1,4 @@
-# Mentor Showcase: GF External Entry Export
+# Mentor Showcase: Izzygld Entry Export for Gravity Forms
 
 ## Feature Summary
 
@@ -39,9 +39,9 @@
 ### Files Created
 
 ```
-gf-external-entry-export/
-├── gf-external-entry-export.php     # Bootstrap (gform_loaded hook)
-├── class-gf-external-entry-export.php  # Main GFAddOn class
+izzygld-entry-export-for-gravity-forms/
+├── izzygld-entry-export-for-gravity-forms.php     # Bootstrap (gform_loaded hook)
+├── class-izzygld-entry-export-for-gravity-forms.php  # Main GFAddOn class
 ├── composer.json                    # Composer distribution config
 ├── README.md                        # Documentation
 ├── includes/
@@ -75,7 +75,7 @@ External User → URL with token → Verify signature → Check expiry → Strea
 
 ### Database Schema
 
-**gf_eee_tokens**
+**izzygld_eee_tokens**
 - `token_id`: Unique identifier
 - `token_hash`: SHA-256 hash for verification
 - `form_id`: Associated form
@@ -85,7 +85,7 @@ External User → URL with token → Verify signature → Check expiry → Strea
 - `max_downloads` / `download_count`: Usage limits
 - `is_revoked`: Soft delete flag
 
-**gf_eee_access_logs**
+**izzygld_eee_access_logs**
 - Access timestamp, IP, user agent
 - Success/failure status
 - Entry count exported

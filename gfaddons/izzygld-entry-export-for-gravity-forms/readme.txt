@@ -1,4 +1,4 @@
-=== GF External Entry Export ===
+=== Izzygld Entry Export for Gravity Forms ===
 Contributors: izzygld
 Donate link: https://github.com/izzygld
 Tags: gravity forms, export, csv, external, secure download
@@ -13,7 +13,7 @@ Generate secure, time-limited download links for Gravity Forms entries — allow
 
 == Description ==
 
-**GF External Entry Export** enables WordPress administrators to share Gravity Forms entry data securely with external partners, vendors, or clients — without giving them WordPress login credentials.
+**Izzygld Entry Export for Gravity Forms** enables WordPress administrators to share Gravity Forms entry data securely with external partners, vendors, or clients — without giving them WordPress login credentials.
 
 = Key Features =
 
@@ -51,7 +51,7 @@ This plugin:
 
 == Installation ==
 
-1. Upload the `gf-external-entry-export` folder to `/wp-content/plugins/`
+1. Upload the `izzygld-entry-export-for-gravity-forms` folder to `/wp-content/plugins/`
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Ensure Gravity Forms is installed and activated
 4. Navigate to Forms → Settings → External Export to configure global settings
@@ -143,35 +143,35 @@ Initial release.
 = Hooks & Filters =
 
 **Modify search criteria:**
-`add_filter( 'gf_eee_search_criteria', function( $criteria, $filters ) {
+`add_filter( 'izzygld_eee_search_criteria', function( $criteria, $filters ) {
     return $criteria;
 }, 10, 2 );`
 
 **Modify field map:**
-`add_filter( 'gf_eee_field_map', function( $field_map, $form, $fields ) {
+`add_filter( 'izzygld_eee_field_map', function( $field_map, $form, $fields ) {
     return $field_map;
 }, 10, 3 );`
 
 **Transform field values:**
-`add_filter( 'gf_eee_field_value', function( $value, $entry, $field, $form ) {
+`add_filter( 'izzygld_eee_field_value', function( $value, $entry, $field, $form ) {
     return $value;
 }, 10, 4 );`
 
 **Modify final CSV:**
-`add_filter( 'gf_eee_csv_content', function( $csv, $entries, $form ) {
+`add_filter( 'izzygld_eee_csv_content', function( $csv, $entries, $form ) {
     return $csv;
 }, 10, 3 );`
 
 = REST API Endpoints =
 
-* `GET /gf-eee/v1/export` - Public download endpoint (token auth)
-* `GET /gf-eee/v1/preview` - Entry count preview (admin auth)
-* `GET /gf-eee/v1/form-fields/{id}` - Get form fields (admin auth)
-* `GET /gf-eee/v1/links` - List active links (admin auth)
+* `GET /izzygld-eee/v1/export` - Public download endpoint (token auth)
+* `GET /izzygld-eee/v1/preview` - Entry count preview (admin auth)
+* `GET /izzygld-eee/v1/form-fields/{id}` - Get form fields (admin auth)
+* `GET /izzygld-eee/v1/links` - List active links (admin auth)
 
 = Generate Link Programmatically =
 
-`$addon = gf_external_entry_export();
+`$addon = izzygld_entry_export();
 $result = $addon->token_handler->generate_token([
     'form_id'     => 1,
     'fields'      => ['field_1', 'field_2'],

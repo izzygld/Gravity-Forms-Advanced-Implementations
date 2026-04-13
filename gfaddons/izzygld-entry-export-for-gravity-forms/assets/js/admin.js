@@ -1,17 +1,17 @@
 /**
- * GF External Entry Export - Admin JavaScript
+ * Izzygld Entry Export for Gravity Forms - Admin JavaScript
  *
  * handles all the link generaton, copyin, and managment ui stuff
  * basically makes the admin page work
  *
- * @package GF_External_Entry_Export
+ * @package Izzygld_Entry_Export
  */
 
 (function($) {
     'use strict';
 
     // localized strings from php - gettin all the text we need
-    var da_strings = window.gf_eee_admin_strings || {
+    var da_strings = window.izzygld_eee_admin_strings || {
         nonce: '',
         generating: 'Generating...',
         copied: 'Copied!',
@@ -31,14 +31,14 @@
      */
     function start_it_up() {
         // checkin for form managment section (per-form settings page)
-        var $da_mgmt = $('.gf-eee-form-management');
+        var $da_mgmt = $('.izzygld-eee-form-management');
         if ($da_mgmt.length) {
             da_form_id = $da_mgmt.data('form-id');
             is_form_page = !!da_form_id;
         }
         // fallback: hidden input on form settings page
         if (!is_form_page) {
-            var $da_hidden = $('#gf-eee-form-id[type="hidden"]');
+            var $da_hidden = $('#izzygld-eee-form-id[type="hidden"]');
             if ($da_hidden.length && $da_hidden.val()) {
                 da_form_id = $da_hidden.val();
                 is_form_page = true;
@@ -81,9 +81,9 @@
         var all_checked = $da_all_choices.length === $da_all_choices.filter(':checked').length;
 
         var $da_select_all = $(
-            '<div class="gf-eee-select-all-wrap" style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #ddd;">' +
+            '<div class="izzygld-eee-select-all-wrap" style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #ddd;">' +
             '<label style="font-weight:600;cursor:pointer;">' +
-            '<input type="checkbox" id="gf-eee-select-all-fields"' + (all_checked ? ' checked' : '') + '> ' +
+            '<input type="checkbox" id="izzygld-eee-select-all-fields"' + (all_checked ? ' checked' : '') + '> ' +
             'Select All' +
             '</label>' +
             '</div>'
@@ -92,7 +92,7 @@
         $da_wrapper.prepend($da_select_all);
 
         // togglin all checkboxes and their hidden inputs
-        $('#gf-eee-select-all-fields').on('change', function() {
+        $('#izzygld-eee-select-all-fields').on('change', function() {
             var da_checked = $(this).prop('checked');
             $da_all_choices.each(function() {
                 $(this).prop('checked', da_checked);
@@ -106,7 +106,7 @@
         // updatin "Select All" state when individual checkboxes change
         $da_all_choices.on('change', function() {
             var all_now_checked = $da_all_choices.length === $da_all_choices.filter(':checked').length;
-            $('#gf-eee-select-all-fields').prop('checked', all_now_checked);
+            $('#izzygld-eee-select-all-fields').prop('checked', all_now_checked);
         });
     }
 
@@ -116,36 +116,36 @@
      */
     function hookup_da_events() {
         // form selecton change (only on global page where its a <select>)
-        $('#gf-eee-form-id').filter('select').on('change', function() {
+        $('#izzygld-eee-form-id').filter('select').on('change', function() {
             var da_selected_form = $(this).val();
             if (da_selected_form) {
                 load_da_form_fields(da_selected_form);
             } else {
-                $('#gf-eee-fields-container').html(
+                $('#izzygld-eee-fields-container').html(
                     '<p class="description">Select a form to see available fields.</p>'
                 );
             }
         });
 
         // generate link button click
-        $('#gf-eee-generate-btn').on('click', function(e) {
+        $('#izzygld-eee-generate-btn').on('click', function(e) {
             e.preventDefault();
             make_da_link();
         });
 
         // also supportin form submit for backward compat
-        $('#gf-eee-generate-form').on('submit', function(e) {
+        $('#izzygld-eee-generate-form').on('submit', function(e) {
             e.preventDefault();
             make_da_link();
         });
 
         // copy button
-        $('#gf-eee-copy-btn').on('click', function() {
+        $('#izzygld-eee-copy-btn').on('click', function() {
             copy_to_clipboard();
         });
 
         // copy individual credential fields
-        $(document).on('click', '.gf-eee-copy-field', function() {
+        $(document).on('click', '.izzygld-eee-copy-field', function() {
             var da_target_id = $(this).data('target');
             var da_text = $('#' + da_target_id).text();
             var $da_btn = $(this);
@@ -168,18 +168,18 @@
         });
 
         // revoke link (delegated)
-        $(document).on('click', '.gf-eee-revoke-btn', function(e) {
+        $(document).on('click', '.izzygld-eee-revoke-btn', function(e) {
             e.preventDefault();
             var da_token_id = $(this).data('token-id');
             kill_da_link(da_token_id, $(this));
         });
 
         // regenerate credentials button
-        $(document).on('click', '#gf-eee-regenerate-creds', function() {
+        $(document).on('click', '#izzygld-eee-regenerate-creds', function() {
             if (!confirm('Regenerating will invalidate the current credentials. Any external clients using the old credentials will lose access.\n\nContinue?')) {
                 return;
             }
-            var da_selected_form = is_form_page ? da_form_id : ($('#gf-eee-form-id').val() || $('input[name="form_id"]').val());
+            var da_selected_form = is_form_page ? da_form_id : ($('#izzygld-eee-form-id').val() || $('input[name="form_id"]').val());
             if (!da_selected_form) {
                 alert('Could not determine form ID.');
                 return;
@@ -187,14 +187,14 @@
             var $da_btn = $(this);
             $da_btn.prop('disabled', true).text('Regenerating...');
             $.post(ajaxurl, {
-                action: 'gf_eee_regenerate_creds',
+                action: 'izzygld_eee_regenerate_creds',
                 nonce: da_strings.nonce,
                 form_id: da_selected_form
             }, function(da_response) {
                 $da_btn.prop('disabled', false).text('Regenerate Credentials');
                 if (da_response.success) {
-                    $('#gf-eee-cred-username').text(da_response.data.username);
-                    $('#gf-eee-cred-password').text(da_response.data.password);
+                    $('#izzygld-eee-cred-username').text(da_response.data.username);
+                    $('#izzygld-eee-cred-password').text(da_response.data.password);
                 } else {
                     alert((da_response.data && da_response.data.message) || da_strings.error);
                 }
@@ -218,11 +218,11 @@
      * @param {number} da_selected_form form id
      */
     function load_da_form_fields(da_selected_form) {
-        var $da_container = $('#gf-eee-fields-container');
+        var $da_container = $('#izzygld-eee-fields-container');
         $da_container.html('<p class="description">Loading fields...</p>');
 
         $.ajax({
-            url: wpApiSettings.root + 'gf-eee/v1/form-fields/' + da_selected_form,
+            url: wpApiSettings.root + 'izzygld-eee/v1/form-fields/' + da_selected_form,
             method: 'GET',
             beforeSend: function(xhr) {
                 xhr.setRequestHeader('X-WP-Nonce', wpApiSettings.nonce);
@@ -262,21 +262,21 @@
             return;
         }
 
-        var da_html = '<fieldset class="gf-eee-field-selection">';
+        var da_html = '<fieldset class="izzygld-eee-field-selection">';
         da_html += '<legend class="screen-reader-text">Select fields to export</legend>';
-        da_html += '<label class="gf-eee-select-all"><input type="checkbox" id="gf-eee-select-all"> <strong>Select All Allowed Fields</strong></label>';
-        da_html += '<div class="gf-eee-fields-list">';
+        da_html += '<label class="izzygld-eee-select-all"><input type="checkbox" id="izzygld-eee-select-all"> <strong>Select All Allowed Fields</strong></label>';
+        da_html += '<div class="izzygld-eee-fields-list">';
 
         da_response.fields.forEach(function(da_field) {
             var da_disabled = !da_field.is_allowed ? ' disabled' : '';
             var da_checked = da_field.is_allowed ? ' checked' : '';
             var da_classname = da_field.is_allowed ? 'allowed' : 'not-allowed';
 
-            da_html += '<label class="gf-eee-field-item ' + da_classname + '">';
+            da_html += '<label class="izzygld-eee-field-item ' + da_classname + '">';
             da_html += '<input type="checkbox" name="fields[]" value="' + da_field.setting + '"' + da_checked + da_disabled + '> ';
             da_html += escape_da_html(da_field.label);
             if (!da_field.is_allowed) {
-                da_html += ' <span class="gf-eee-not-allowed">(not enabled)</span>';
+                da_html += ' <span class="izzygld-eee-not-allowed">(not enabled)</span>';
             }
             da_html += '</label>';
         });
@@ -287,9 +287,9 @@
         $da_container.html(da_html);
 
         // bindin select all
-        $('#gf-eee-select-all').on('change', function() {
+        $('#izzygld-eee-select-all').on('change', function() {
             var da_checked = $(this).prop('checked');
-            $('.gf-eee-fields-list input[type="checkbox"]:not(:disabled)').prop('checked', da_checked);
+            $('.izzygld-eee-fields-list input[type="checkbox"]:not(:disabled)').prop('checked', da_checked);
         });
     }
 
@@ -298,27 +298,27 @@
      * sends the ajax request to generate a new link
      */
     function make_da_link() {
-        var $da_btn = $('#gf-eee-generate-btn');
-        var $da_result = $('#gf-eee-result');
+        var $da_btn = $('#izzygld-eee-generate-btn');
+        var $da_result = $('#izzygld-eee-result');
 
         // collectin selected fields from the managment section or form
         var da_fields = [];
-        $('.gf-eee-form-management input[name="fields[]"]:checked, #gf-eee-generate-form input[name="fields[]"]:checked').each(function() {
+        $('.izzygld-eee-form-management input[name="fields[]"]:checked, #izzygld-eee-generate-form input[name="fields[]"]:checked').each(function() {
             da_fields.push($(this).val());
         });
 
-        var da_selected_form = is_form_page ? da_form_id : $('#gf-eee-form-id').val();
+        var da_selected_form = is_form_page ? da_form_id : $('#izzygld-eee-form-id').val();
 
         var da_data = {
-            action: 'gf_eee_generate_link',
+            action: 'izzygld_eee_generate_link',
             nonce: da_strings.nonce,
             form_id: da_selected_form,
             fields: da_fields,
-            description: $('#gf-eee-description').val(),
-            expiration: $('#gf-eee-expiration').val(),
-            start_date: $('#gf-eee-start-date').val(),
-            end_date: $('#gf-eee-end-date').val(),
-            status: $('#gf-eee-status').val()
+            description: $('#izzygld-eee-description').val(),
+            expiration: $('#izzygld-eee-expiration').val(),
+            start_date: $('#izzygld-eee-start-date').val(),
+            end_date: $('#izzygld-eee-end-date').val(),
+            status: $('#izzygld-eee-status').val()
         };
 
         $da_btn.prop('disabled', true).text(da_strings.generating);
@@ -328,16 +328,16 @@
             $da_btn.prop('disabled', false).text('Generate Export Link');
 
             if (da_response.success) {
-                $('#gf-eee-url').val(da_response.data.url);
+                $('#izzygld-eee-url').val(da_response.data.url);
 
                 // displayin client credentials (shown once only)
-                $('#gf-eee-client-username').text(da_response.data.client_username);
-                $('#gf-eee-client-password').text(da_response.data.client_password);
+                $('#izzygld-eee-client-username').text(da_response.data.client_username);
+                $('#izzygld-eee-client-password').text(da_response.data.client_password);
 
                 var da_expiry_text = da_response.data.expires_at
                     ? 'Expires: ' + da_response.data.expires_at
                     : 'This link never expires';
-                $('#gf-eee-expiry-info').text(da_expiry_text);
+                $('#izzygld-eee-expiry-info').text(da_expiry_text);
 
                 $da_result.removeClass('hidden');
 
@@ -359,8 +359,8 @@
      * uses the fancy new api or falls back to old way
      */
     function copy_to_clipboard() {
-        var $da_input = $('#gf-eee-url');
-        var $da_btn = $('#gf-eee-copy-btn');
+        var $da_input = $('#izzygld-eee-url');
+        var $da_btn = $('#izzygld-eee-copy-btn');
         var da_original_text = $da_btn.text();
 
         $da_input.select();
@@ -404,11 +404,11 @@
      * for the global overview page
      */
     function load_da_active_links() {
-        var $da_tbody = $('#gf-eee-links-table tbody');
+        var $da_tbody = $('#izzygld-eee-links-table tbody');
         if (!$da_tbody.length) return;
 
         $.ajax({
-            url: wpApiSettings.root + 'gf-eee/v1/links',
+            url: wpApiSettings.root + 'izzygld-eee/v1/links',
             method: 'GET',
             beforeSend: function(xhr) {
                 xhr.setRequestHeader('X-WP-Nonce', wpApiSettings.nonce);
@@ -429,11 +429,11 @@
      * @param {number} da_selected_form form id
      */
     function load_da_form_links(da_selected_form) {
-        var $da_tbody = $('#gf-eee-links-table tbody');
+        var $da_tbody = $('#izzygld-eee-links-table tbody');
         if (!$da_tbody.length) return;
 
         $.post(ajaxurl, {
-            action: 'gf_eee_get_links',
+            action: 'izzygld_eee_get_links',
             nonce: da_strings.nonce,
             form_id: da_selected_form
         }, function(da_response) {
@@ -482,7 +482,7 @@
             da_html += '<td>' + escape_da_html(da_expires) + '</td>';
             da_html += '<td>' + escape_da_html(da_downloads) + '</td>';
             da_html += '<td>';
-            da_html += '<button type="button" class="button button-small gf-eee-revoke-btn" data-token-id="' + escape_da_html(da_link.token_id) + '">Revoke</button>';
+            da_html += '<button type="button" class="button button-small izzygld-eee-revoke-btn" data-token-id="' + escape_da_html(da_link.token_id) + '">Revoke</button>';
             da_html += '</td>';
             da_html += '</tr>';
         });
@@ -506,16 +506,16 @@
         $da_btn.prop('disabled', true).text('...');
 
         $.post(ajaxurl, {
-            action: 'gf_eee_revoke_link',
+            action: 'izzygld_eee_revoke_link',
             nonce: da_strings.nonce,
             token_id: da_token_id
         }, function(da_response) {
             if (da_response.success) {
                 $da_btn.closest('tr').fadeOut(function() {
                     $(this).remove();
-                    if ($('#gf-eee-links-table tbody tr').length === 0) {
+                    if ($('#izzygld-eee-links-table tbody tr').length === 0) {
                         var da_col_count = is_form_page ? 6 : 7;
-                        $('#gf-eee-links-table tbody').html(
+                        $('#izzygld-eee-links-table tbody').html(
                             '<tr><td colspan="' + da_col_count + '">No active export links.</td></tr>'
                         );
                     }
@@ -538,7 +538,7 @@
      * @return {string} url
      */
     function get_form_settings_link(da_selected_form) {
-        return 'admin.php?page=gf_edit_forms&view=settings&subview=gf-external-entry-export&id=' + da_selected_form;
+        return 'admin.php?page=gf_edit_forms&view=settings&subview=izzygld-entry-export-for-gravity-forms&id=' + da_selected_form;
     }
 
     /**

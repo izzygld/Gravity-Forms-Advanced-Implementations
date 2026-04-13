@@ -1,18 +1,18 @@
 <?php
 /**
- * Token Controller for GF External Entry Export
+ * Token Controller for Izzygld Entry Export for Gravity Forms
  *
  * handles all the token generaton, validation, and lifecycle managment
  * basically the brains of the secure link system
  *
- * @package GF_External_Entry_Export
+ * @package Izzygld_Entry_Export
  */
 
 // dont let ppl access directly
 defined( 'ABSPATH' ) || exit;
 
 /**
- * GF_EEE_TOKEN_CONTROLLER class
+ * Izzygld_EEE_Token_Handler class
  *
  * manages cryptographically secure export tokens with expiraton and revocation
  * uses custom database tables for token storage - direct querys are intentional
@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
  * @phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
  * @phpcs:disable WordPress.DB.DirectDatabaseQuery.NoCaching
  */
-class GF_EEE_TOKEN_CONTROLLER {
+class Izzygld_EEE_Token_Handler {
 
     /**
      * database version number
@@ -34,14 +34,14 @@ class GF_EEE_TOKEN_CONTROLLER {
      *
      * @var string
      */
-    const TOKENS_TABLE = 'gf_eee_tokens';
+    const TOKENS_TABLE = 'izzygld_eee_tokens';
 
     /**
      * access logs table name without the prefix
      *
      * @var string
      */
-    const LOGS_TABLE = 'gf_eee_access_logs';
+    const LOGS_TABLE = 'izzygld_eee_access_logs';
 
     /**
      * constructor - sets up da tables if needed
@@ -57,11 +57,11 @@ class GF_EEE_TOKEN_CONTROLLER {
      * @return void
      */
     public function maybe_setup_tables() {
-        $installed_ver = get_option( 'gf_eee_db_version' );
+        $installed_ver = get_option( 'izzygld_eee_db_version' );
 
         if ( $installed_ver !== self::DB_VERSION ) {
             $this->setup_da_tables();
-            update_option( 'gf_eee_db_version', self::DB_VERSION );
+            update_option( 'izzygld_eee_db_version', self::DB_VERSION );
         }
     }
 
@@ -140,7 +140,7 @@ class GF_EEE_TOKEN_CONTROLLER {
 
         // gotta have a form id
         if ( empty( $da_data['form_id'] ) ) {
-            return new WP_Error( 'missing_form_id', __( 'Form ID is required.', 'gf-external-entry-export' ) );
+            return new WP_Error( 'missing_form_id', __( 'Form ID is required.', 'izzygld-entry-export-for-gravity-forms' ) );
         }
 
         // generatin the secure token stuff
@@ -162,7 +162,7 @@ class GF_EEE_TOKEN_CONTROLLER {
         }
 
         // gettin max downloads from settings
-        $da_addon        = gf_eee_get_da_addon();
+        $da_addon        = izzygld_eee_get_da_addon();
         $da_max_downloads = $da_addon ? absint( $da_addon->get_plugin_setting( 'max_downloads' ) ) : 10;
 
         // per-link client credentials (legacy columns, kept for DB compat)
@@ -172,6 +172,7 @@ class GF_EEE_TOKEN_CONTROLLER {
 
         // insertin the token record into the db
         $da_table  = $wpdb->prefix . self::TOKENS_TABLE;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table insert; no WP cache for custom token table.
         $da_result = $wpdb->insert(
             $da_table,
             array(
@@ -192,7 +193,7 @@ class GF_EEE_TOKEN_CONTROLLER {
         );
 
         if ( false === $da_result ) {
-            return new WP_Error( 'db_error', __( 'Failed to create export token.', 'gf-external-entry-export' ) );
+            return new WP_Error( 'db_error', __( 'Failed to create export token.', 'izzygld-entry-export-for-gravity-forms' ) );
         }
 
         // buildin the export url
@@ -280,11 +281,12 @@ class GF_EEE_TOKEN_CONTROLLER {
         $da_verified = $this->token_validation( $da_token );
         if ( false === $da_verified || $da_verified['token_id'] !== $da_token_id ) {
             $this->log_da_access( $da_token_id, 0, 'invalid_signature' );
-            return new WP_Error( 'invalid_token', __( 'Invalid export token.', 'gf-external-entry-export' ) );
+            return new WP_Error( 'invalid_token', __( 'Invalid export token.', 'izzygld-entry-export-for-gravity-forms' ) );
         }
 
         // gettin the token record from db
         $da_table  = $wpdb->prefix . self::TOKENS_TABLE;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup; caching not appropriate for token validation.
         $da_record = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT * FROM {$da_table} WHERE token_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -295,13 +297,13 @@ class GF_EEE_TOKEN_CONTROLLER {
 
         if ( ! $da_record ) {
             $this->log_da_access( $da_token_id, 0, 'not_found' );
-            return new WP_Error( 'token_not_found', __( 'Export token not found.', 'gf-external-entry-export' ) );
+            return new WP_Error( 'token_not_found', __( 'Export token not found.', 'izzygld-entry-export-for-gravity-forms' ) );
         }
 
         // checkin if its been revoked
         if ( ! empty( $da_record['is_revoked'] ) ) {
             $this->log_da_access( $da_token_id, $da_record['form_id'], 'revoked' );
-            return new WP_Error( 'token_revoked', __( 'This export link has been revoked.', 'gf-external-entry-export' ) );
+            return new WP_Error( 'token_revoked', __( 'This export link has been revoked.', 'izzygld-entry-export-for-gravity-forms' ) );
         }
 
         // checkin if its expired
@@ -309,26 +311,26 @@ class GF_EEE_TOKEN_CONTROLLER {
             $da_expires = strtotime( $da_record['expires_at'] );
             if ( time() > $da_expires ) {
                 $this->log_da_access( $da_token_id, $da_record['form_id'], 'expired' );
-                return new WP_Error( 'token_expired', __( 'This export link has expired.', 'gf-external-entry-export' ) );
+                return new WP_Error( 'token_expired', __( 'This export link has expired.', 'izzygld-entry-export-for-gravity-forms' ) );
             }
         }
 
         // checkin download limit
         if ( ! empty( $da_record['max_downloads'] ) && $da_record['download_count'] >= $da_record['max_downloads'] ) {
             $this->log_da_access( $da_token_id, $da_record['form_id'], 'limit_exceeded' );
-            return new WP_Error( 'download_limit', __( 'Download limit exceeded for this link.', 'gf-external-entry-export' ) );
+            return new WP_Error( 'download_limit', __( 'Download limit exceeded for this link.', 'izzygld-entry-export-for-gravity-forms' ) );
         }
 
         // checkin ip allowlist
-        $da_addon = gf_eee_get_da_addon();
+        $da_addon = izzygld_eee_get_da_addon();
         if ( $da_addon ) {
             $da_allowed_ips = $da_addon->get_plugin_setting( 'allowed_ips' );
             if ( ! empty( $da_allowed_ips ) ) {
                 $da_ip_list    = array_filter( array_map( 'trim', explode( "\n", $da_allowed_ips ) ) );
                 $da_visitor_ip = $this->grab_user_ip();
                 if ( ! in_array( $da_visitor_ip, $da_ip_list, true ) ) {
-                    $this->log_da_access( $da_token_id, $da_record['form_id'], 'ip_blocked', 0, __( 'IP not in allowlist', 'gf-external-entry-export' ) );
-                    return new WP_Error( 'ip_blocked', __( 'Access denied.', 'gf-external-entry-export' ) );
+                    $this->log_da_access( $da_token_id, $da_record['form_id'], 'ip_blocked', 0, __( 'IP not in allowlist', 'izzygld-entry-export-for-gravity-forms' ) );
+                    return new WP_Error( 'ip_blocked', __( 'Access denied.', 'izzygld-entry-export-for-gravity-forms' ) );
                 }
             }
         }
@@ -353,6 +355,7 @@ class GF_EEE_TOKEN_CONTROLLER {
         global $wpdb;
 
         $da_table  = $wpdb->prefix . self::TOKENS_TABLE;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup; caching not appropriate for credential validation.
         $da_record = $wpdb->get_row(
             $wpdb->prepare(
                 "SELECT client_username, client_password_hash FROM {$da_table} WHERE token_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -362,19 +365,19 @@ class GF_EEE_TOKEN_CONTROLLER {
         );
 
         if ( ! $da_record ) {
-            return new WP_Error( 'invalid_credentials', __( 'Invalid credentials.', 'gf-external-entry-export' ) );
+            return new WP_Error( 'invalid_credentials', __( 'Invalid credentials.', 'izzygld-entry-export-for-gravity-forms' ) );
         }
 
         // constant-time username comparison for security
         if ( ! hash_equals( $da_record['client_username'], $da_username ) ) {
             $this->log_da_access( $da_token_id, 0, 'auth_failed', 0, 'Invalid username' );
-            return new WP_Error( 'invalid_credentials', __( 'Invalid credentials.', 'gf-external-entry-export' ) );
+            return new WP_Error( 'invalid_credentials', __( 'Invalid credentials.', 'izzygld-entry-export-for-gravity-forms' ) );
         }
 
         // verifyin password hash
         if ( ! wp_check_password( $da_password, $da_record['client_password_hash'] ) ) {
             $this->log_da_access( $da_token_id, 0, 'auth_failed', 0, 'Invalid password' );
-            return new WP_Error( 'invalid_credentials', __( 'Invalid credentials.', 'gf-external-entry-export' ) );
+            return new WP_Error( 'invalid_credentials', __( 'Invalid credentials.', 'izzygld-entry-export-for-gravity-forms' ) );
         }
 
         return true;
@@ -393,6 +396,7 @@ class GF_EEE_TOKEN_CONTROLLER {
 
         $da_table = $wpdb->prefix . self::TOKENS_TABLE;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update; write-only operation.
         $wpdb->query(
             $wpdb->prepare(
                 "UPDATE {$da_table} SET download_count = download_count + 1, last_download_at = %s WHERE token_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -402,6 +406,7 @@ class GF_EEE_TOKEN_CONTROLLER {
         );
 
         // gettin form_id for loggin
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup after download.
         $da_record = $wpdb->get_row(
             $wpdb->prepare( "SELECT form_id FROM {$da_table} WHERE token_id = %s", $da_token_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             ARRAY_A
@@ -421,6 +426,7 @@ class GF_EEE_TOKEN_CONTROLLER {
         global $wpdb;
 
         $da_table  = $wpdb->prefix . self::TOKENS_TABLE;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update for token revocation.
         $da_result = $wpdb->update(
             $da_table,
             array(
@@ -434,7 +440,7 @@ class GF_EEE_TOKEN_CONTROLLER {
         );
 
         if ( false === $da_result ) {
-            return new WP_Error( 'revoke_failed', __( 'Failed to revoke token.', 'gf-external-entry-export' ) );
+            return new WP_Error( 'revoke_failed', __( 'Failed to revoke token.', 'izzygld-entry-export-for-gravity-forms' ) );
         }
 
         return true;
@@ -453,7 +459,7 @@ class GF_EEE_TOKEN_CONTROLLER {
 
         $da_table = $wpdb->prefix . self::TOKENS_TABLE;
 
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is wpdb->prefix + constant.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is wpdb->prefix + constant; custom table, no WP cache.
         if ( $active_only ) {
             $da_tokens = $wpdb->get_results(
                 $wpdb->prepare(
@@ -482,7 +488,7 @@ class GF_EEE_TOKEN_CONTROLLER {
         // addin form title and user info
         $da_form = GFAPI::get_form( $da_form_id );
         foreach ( $da_tokens as &$da_token ) {
-            $da_token['form_title'] = $da_form ? $da_form['title'] : __( 'Unknown', 'gf-external-entry-export' );
+            $da_token['form_title'] = $da_form ? $da_form['title'] : __( 'Unknown', 'izzygld-entry-export-for-gravity-forms' );
         }
 
         return $da_tokens;
@@ -524,7 +530,7 @@ class GF_EEE_TOKEN_CONTROLLER {
         // addin form titles
         foreach ( $da_tokens as &$da_token ) {
             $da_form = GFAPI::get_form( $da_token['form_id'] );
-            $da_token['form_title'] = $da_form ? $da_form['title'] : __( 'Unknown', 'gf-external-entry-export' );
+            $da_token['form_title'] = $da_form ? $da_form['title'] : __( 'Unknown', 'izzygld-entry-export-for-gravity-forms' );
         }
 
         return $da_tokens;
@@ -544,7 +550,7 @@ class GF_EEE_TOKEN_CONTROLLER {
     public function log_da_access( $da_token_id, $da_form_id, $da_status, $da_entries_count = 0, $da_error_msg = null ) {
         global $wpdb;
 
-        $da_addon = gf_eee_get_da_addon();
+        $da_addon = izzygld_eee_get_da_addon();
         if ( $da_addon && ! $da_addon->get_plugin_setting( 'enable_logging' ) ) {
             return;
         }
@@ -588,7 +594,7 @@ class GF_EEE_TOKEN_CONTROLLER {
          *
          * @param array $da_trusted_proxies trusted proxy ip addresses
          */
-        $da_trusted_proxies = apply_filters( 'gf_eee_trusted_proxies', array() );
+        $da_trusted_proxies = apply_filters( 'izzygld_eee_trusted_proxies', array() );
 
         if ( empty( $da_trusted_proxies ) || ! in_array( $da_remote_addr, $da_trusted_proxies, true ) ) {
             // not behind a trusted proxy so REMOTE_ADDR is the client ip
@@ -625,7 +631,7 @@ class GF_EEE_TOKEN_CONTROLLER {
      * @return string
      */
     private function grab_secret_key() {
-        $da_addon = gf_eee_get_da_addon();
+        $da_addon = izzygld_eee_get_da_addon();
         $da_key   = $da_addon ? $da_addon->get_plugin_setting( 'secret_key' ) : '';
 
         if ( empty( $da_key ) ) {
@@ -636,10 +642,10 @@ class GF_EEE_TOKEN_CONTROLLER {
                 $da_key = SECURE_AUTH_KEY;
             } else {
                 // last resort: generate a persistant key and store it
-                $da_key = get_option( 'gf_eee_fallback_secret' );
+                $da_key = get_option( 'izzygld_eee_fallback_secret' );
                 if ( empty( $da_key ) ) {
                     $da_key = bin2hex( random_bytes( 32 ) );
-                    update_option( 'gf_eee_fallback_secret', $da_key, false );
+                    update_option( 'izzygld_eee_fallback_secret', $da_key, false );
                 }
             }
         }
@@ -658,10 +664,10 @@ class GF_EEE_TOKEN_CONTROLLER {
     private function make_export_url( $da_token_id, $da_token ) {
         return add_query_arg(
             array(
-                'gf_eee_export' => $da_token_id,
+                'izzygld_eee_export' => $da_token_id,
                 'token'         => rawurlencode( $da_token ),
             ),
-            rest_url( 'gf-eee/v1/export' )
+            rest_url( 'izzygld-eee/v1/export' )
         );
     }
 

@@ -65,6 +65,6 @@ Contact the person or organization who sent you this link.
 
 <div align="center">
 
-*Powered by GF External Entry Export*
+*Powered by Izzygld Entry Export for Gravity Forms*
 
 </div>

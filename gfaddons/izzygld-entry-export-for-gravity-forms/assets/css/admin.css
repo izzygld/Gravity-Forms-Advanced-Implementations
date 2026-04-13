@@ -1,22 +1,22 @@
 /**
- * GF External Entry Export - Admin Styles
+ * Izzygld Entry Export for Gravity Forms - Admin Styles
  *
- * @package GF_External_Entry_Export
+ * @package Izzygld_Entry_Export
  */
 
 /* ==========================================================================
    Management Page
    ========================================================================== */
 
-.gf-eee-management {
+.izzygld-eee-management {
     max-width: 1200px;
 }
 
-.gf-eee-management h1 {
+.izzygld-eee-management h1 {
     margin-bottom: 20px;
 }
 
-.gf-eee-management h2 {
+.izzygld-eee-management h2 {
     font-size: 1.3em;
     margin-top: 0;
     padding-bottom: 10px;
@@ -27,18 +27,18 @@
    Generate Form
    ========================================================================== */
 
-.gf-eee-form .form-table th {
+.izzygld-eee-form .form-table th {
     width: 180px;
     padding-top: 15px;
 }
 
-.gf-eee-form .form-table td {
+.izzygld-eee-form .form-table td {
     padding-top: 10px;
 }
 
-.gf-eee-form select,
-.gf-eee-form input[type="text"],
-.gf-eee-form input[type="date"] {
+.izzygld-eee-form select,
+.izzygld-eee-form input[type="text"],
+.izzygld-eee-form input[type="date"] {
     max-width: 100%;
 }
 
@@ -46,7 +46,7 @@
    Field Selection
    ========================================================================== */
 
-.gf-eee-field-selection {
+.izzygld-eee-field-selection {
     border: 1px solid #ddd;
     padding: 15px;
     background: #fafafa;
@@ -54,20 +54,20 @@
     overflow-y: auto;
 }
 
-.gf-eee-select-all {
+.izzygld-eee-select-all {
     display: block;
     margin-bottom: 10px;
     padding-bottom: 10px;
     border-bottom: 1px solid #ddd;
 }
 
-.gf-eee-fields-list {
+.izzygld-eee-fields-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 8px;
 }
 
-.gf-eee-field-item {
+.izzygld-eee-field-item {
     display: block;
     padding: 5px 8px;
     background: #fff;
@@ -77,21 +77,21 @@
     transition: background-color 0.15s ease;
 }
 
-.gf-eee-field-item:hover {
+.izzygld-eee-field-item:hover {
     background: #f0f6fc;
 }
 
-.gf-eee-field-item.not-allowed {
+.izzygld-eee-field-item.not-allowed {
     background: #f5f5f5;
     color: #666;
     cursor: not-allowed;
 }
 
-.gf-eee-field-item input[type="checkbox"] {
+.izzygld-eee-field-item input[type="checkbox"] {
     margin-right: 8px;
 }
 
-.gf-eee-not-allowed {
+.izzygld-eee-not-allowed {
     font-size: 11px;
     color: #999;
     font-style: italic;
@@ -101,7 +101,7 @@
    Result Section
    ========================================================================== */
 
-.gf-eee-result {
+.izzygld-eee-result {
     margin-top: 20px;
     padding: 20px;
     background: #ecf7ed;
@@ -109,29 +109,29 @@
     border-radius: 4px;
 }
 
-.gf-eee-result.hidden {
+.izzygld-eee-result.hidden {
     display: none;
 }
 
-.gf-eee-result h3 {
+.izzygld-eee-result h3 {
     margin-top: 0;
     color: #32853a;
 }
 
-.gf-eee-url-container {
+.izzygld-eee-url-container {
     display: flex;
     gap: 10px;
     margin-bottom: 10px;
 }
 
-.gf-eee-url-container input[type="text"] {
+.izzygld-eee-url-container input[type="text"] {
     flex: 1;
     font-family: monospace;
     font-size: 12px;
     padding: 8px;
 }
 
-.gf-eee-url-container .button {
+.izzygld-eee-url-container .button {
     white-space: nowrap;
 }
 
@@ -139,20 +139,20 @@
    Links Table
    ========================================================================== */
 
-.gf-eee-links-section {
+.izzygld-eee-links-section {
     margin-top: 30px;
 }
 
-#gf-eee-links-table {
+#izzygld-eee-links-table {
     margin-top: 15px;
 }
 
-#gf-eee-links-table th,
-#gf-eee-links-table td {
+#izzygld-eee-links-table th,
+#izzygld-eee-links-table td {
     vertical-align: middle;
 }
 
-#gf-eee-links-table .button-small {
+#izzygld-eee-links-table .button-small {
     margin: 0;
 }
 
@@ -160,7 +160,7 @@
    Form Settings Page
    ========================================================================== */
 
-.gf-eee-form-settings-note {
+.izzygld-eee-form-settings-note {
     background: #fff8e5;
     border-left: 4px solid #ffb900;
     padding: 12px;
@@ -171,21 +171,21 @@
    Plugin Settings Page
    ========================================================================== */
 
-.gf-eee-settings-section {
+.izzygld-eee-settings-section {
     background: #fff;
     border: 1px solid #ccd0d4;
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
     margin-bottom: 20px;
 }
 
-.gf-eee-settings-section h2 {
+.izzygld-eee-settings-section h2 {
     margin: 0;
     padding: 15px;
     background: #f7f7f7;
     border-bottom: 1px solid #ccd0d4;
 }
 
-.gf-eee-settings-section .form-table {
+.izzygld-eee-settings-section .form-table {
     margin: 0;
 }
 
@@ -205,20 +205,20 @@ input[name="_gform_setting_secret_key"] + button {
    ========================================================================== */
 
 @media screen and (max-width: 782px) {
-    .gf-eee-form .form-table th {
+    .izzygld-eee-form .form-table th {
         width: auto;
         padding-bottom: 0;
     }
 
-    .gf-eee-fields-list {
+    .izzygld-eee-fields-list {
         grid-template-columns: 1fr;
     }
 
-    .gf-eee-url-container {
+    .izzygld-eee-url-container {
         flex-direction: column;
     }
 
-    .gf-eee-url-container input[type="text"] {
+    .izzygld-eee-url-container input[type="text"] {
         width: 100%;
     }
 }
@@ -227,24 +227,24 @@ input[name="_gform_setting_secret_key"] + button {
    Notices
    ========================================================================== */
 
-.gf-eee-notice {
+.izzygld-eee-notice {
     padding: 10px 15px;
     margin: 15px 0;
     border-left-width: 4px;
     border-left-style: solid;
 }
 
-.gf-eee-notice-success {
+.izzygld-eee-notice-success {
     background: #ecf7ed;
     border-color: #46b450;
 }
 
-.gf-eee-notice-warning {
+.izzygld-eee-notice-warning {
     background: #fff8e5;
     border-color: #ffb900;
 }
 
-.gf-eee-notice-error {
+.izzygld-eee-notice-error {
     background: #fbeaea;
     border-color: #dc3232;
 }
@@ -253,7 +253,7 @@ input[name="_gform_setting_secret_key"] + button {
    Entry List Integration
    ========================================================================== */
 
-.gf-eee-entry-export-link {
+.izzygld-eee-entry-export-link {
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -261,11 +261,11 @@ input[name="_gform_setting_secret_key"] + button {
     text-decoration: none;
 }
 
-.gf-eee-entry-export-link:hover {
+.izzygld-eee-entry-export-link:hover {
     color: #00a0d2;
 }
 
-.gf-eee-entry-export-link .dashicons {
+.izzygld-eee-entry-export-link .dashicons {
     font-size: 16px;
     width: 16px;
     height: 16px;

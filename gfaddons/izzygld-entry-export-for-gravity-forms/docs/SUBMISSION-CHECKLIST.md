@@ -1,6 +1,6 @@
 # WordPress.org Plugin Submission Checklist
 
-## GF External Entry Export - Submission Guide
+## Izzygld Entry Export for Gravity Forms - Submission Guide
 
 This document outlines the steps to submit the plugin to the WordPress.org plugin repository.
 
@@ -11,22 +11,22 @@ This document outlines the steps to submit the plugin to the WordPress.org plugi
 ### Required Files ✅
 
 - [x] `readme.txt` - WordPress.org standard format
-- [x] `gf-external-entry-export.php` - Main plugin file with proper headers
+- [x] `izzygld-entry-export-for-gravity-forms.php` - Main plugin file with proper headers
 - [x] `index.php` files in all directories (security)
 - [x] GPL-2.0-or-later license declared
 
 ### Plugin Header Requirements ✅
 
 ```php
-Plugin Name: GF External Entry Export
-Plugin URI: https://github.com/izzygld/gf-external-entry-export
+Plugin Name: Izzygld Entry Export for Gravity Forms
+Plugin URI: https://github.com/izzygld/izzygld-entry-export-for-gravity-forms
 Version: 1.0.1
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Text Domain: gf-external-entry-export
+Text Domain: izzygld-entry-export-for-gravity-forms
 Domain Path: /languages
 ```
 
@@ -43,7 +43,7 @@ Domain Path: /languages
 
 ### Guideline Compliance ✅
 
-- [x] Unique function/class prefixes (`GF_EEE_*`, `gf_eee_*`)
+- [x] Unique function/class prefixes (`GF_EEE_*`, `izzygld_eee_*`)
 - [x] No hardcoded external URLs
 - [x] Proper WordPress API usage
 - [x] Internationalization ready
@@ -57,7 +57,7 @@ Domain Path: /languages
 
 1. Install the [Plugin Check plugin](https://wordpress.org/plugins/plugin-check/)
 2. Go to **Tools → Plugin Check**
-3. Select "GF External Entry Export"
+3. Select "Izzygld Entry Export for Gravity Forms"
 4. Run all checks
 5. Resolve any errors (warnings may be acceptable)
 
@@ -65,7 +65,7 @@ Domain Path: /languages
 
 ```bash
 cd /path/to/gfaddons
-zip -r gf-external-entry-export.zip gf-external-entry-export \
+zip -r izzygld-entry-export-for-gravity-forms.zip izzygld-entry-export-for-gravity-forms \
   -x "*.DS_Store" \
   -x "*/.git/*" \
   -x "*/node_modules/*" \
@@ -125,8 +125,8 @@ Before each release, verify versions match:
 
 | Location | Current |
 |----------|---------|
-| `gf-external-entry-export.php` header | 1.0.1 |
-| `GF_EXTERNAL_ENTRY_EXPORT_VERSION` constant | 1.0.1 |
+| `izzygld-entry-export-for-gravity-forms.php` header | 1.0.1 |
+| `IZZYGLD_EEE_VERSION` constant | 1.0.1 |
 | `readme.txt` Stable tag | 1.0.1 |
 | `composer.json` version | 1.0.1 |
 | `CHANGELOG.md` latest entry | 1.0.1 |

@@ -1,42 +1,42 @@
 <?php
 /**
- * API Handler for GF External Entry Export
+ * API Handler for Izzygld Entry Export for Gravity Forms
  *
  * handles the public-facin export endpoint that external users access
  * this is the main entry point for downloadin exports
  *
- * @package GF_External_Entry_Export
+ * @package Izzygld_Entry_Export
  */
 
 // dont let ppl access directly
 defined( 'ABSPATH' ) || exit;
 
 /**
- * GF_EEE_API_HANDLER class
+ * Izzygld_EEE_REST_Controller class
  *
  * implements the secure export endpoint followin wordpress rest api patterns
  * handles authenticaton, validation, and servin up the csv files
  */
-class GF_EEE_API_HANDLER {
+class Izzygld_EEE_REST_Controller {
 
     /**
      * rest namespace for our endpoints
      *
      * @var string
      */
-    const NAMESPACE = 'gf-eee/v1';
+    const NAMESPACE = 'izzygld-eee/v1';
 
     /**
      * parent addon instance
      *
-     * @var GF_EEE_MAIN_ADDON
+     * @var Izzygld_EEE_Addon
      */
     private $da_addon;
 
     /**
      * constructor - stores the addon instance
      *
-     * @param GF_EEE_MAIN_ADDON $da_addon parent addon instance
+     * @param Izzygld_EEE_Addon $da_addon parent addon instance
      */
     public function __construct( $da_addon ) {
         $this->da_addon = $da_addon;
@@ -58,17 +58,17 @@ class GF_EEE_API_HANDLER {
                 'callback'            => array( $this, 'handle_da_export' ),
                 'permission_callback' => '__return_true', // public endpoint, validated by token
                 'args'                => array(
-                    'gf_eee_export' => array(
+                    'izzygld_eee_export' => array(
                         'required'          => true,
                         'type'              => 'string',
                         'sanitize_callback' => 'sanitize_text_field',
-                        'description'       => __( 'Export token ID', 'gf-external-entry-export' ),
+                        'description'       => __( 'Export token ID', 'izzygld-entry-export-for-gravity-forms' ),
                     ),
                     'token'         => array(
                         'required'          => true,
                         'type'              => 'string',
                         'sanitize_callback' => 'sanitize_text_field',
-                        'description'       => __( 'Signed export token', 'gf-external-entry-export' ),
+                        'description'       => __( 'Signed export token', 'izzygld-entry-export-for-gravity-forms' ),
                     ),
                 ),
             )
@@ -142,7 +142,7 @@ class GF_EEE_API_HANDLER {
      * @return bool
      */
     public function can_user_do_admin_stuff() {
-        return current_user_can( 'gf_external_entry_export_manage_links' ) ||
+        return current_user_can( 'izzygld_entry_export_manage_links' ) ||
                current_user_can( 'gravityforms_edit_entries' ) ||
                current_user_can( 'manage_options' );
     }
@@ -209,12 +209,12 @@ class GF_EEE_API_HANDLER {
             header( 'WWW-Authenticate: Basic realm="GF Export"' );
             return new WP_Error(
                 'authentication_required',
-                __( 'Username and password are required to download this export.', 'gf-external-entry-export' ),
+                __( 'Username and password are required to download this export.', 'izzygld-entry-export-for-gravity-forms' ),
                 array( 'status' => 401 )
             );
         }
 
-        $da_token_id = $da_request->get_param( 'gf_eee_export' );
+        $da_token_id = $da_request->get_param( 'izzygld_eee_export' );
         $da_token    = rawurldecode( $da_request->get_param( 'token' ) );
 
         // checkin user agent requirement
@@ -222,7 +222,7 @@ class GF_EEE_API_HANDLER {
             if ( empty( $_SERVER['HTTP_USER_AGENT'] ) ) {
                 return new WP_Error(
                     'missing_user_agent',
-                    __( 'User agent required.', 'gf-external-entry-export' ),
+                    __( 'User agent required.', 'izzygld-entry-export-for-gravity-forms' ),
                     array( 'status' => 400 )
                 );
             }
@@ -241,13 +241,13 @@ class GF_EEE_API_HANDLER {
 
         // rate-limit: blockin after repeated auth failures
         $da_remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-        $da_rate_key    = 'gf_eee_fail_' . md5( $da_token_id . '|' . $da_remote_addr );
+        $da_rate_key    = 'izzygld_eee_fail_' . md5( $da_token_id . '|' . $da_remote_addr );
         $da_fail_count  = (int) get_transient( $da_rate_key );
         if ( $da_fail_count >= 5 ) {
             $this->da_addon->token_controller->log_da_access( $da_token_id, 0, 'rate_limited' );
             return new WP_Error(
                 'rate_limited',
-                __( 'Too many failed attempts. Please try again later.', 'gf-external-entry-export' ),
+                __( 'Too many failed attempts. Please try again later.', 'izzygld-entry-export-for-gravity-forms' ),
                 array( 'status' => 429 )
             );
         }
@@ -262,7 +262,7 @@ class GF_EEE_API_HANDLER {
             $this->da_addon->token_controller->log_da_access( $da_token_id, $da_token_data['form_id'], 'auth_failed', 0, 'No form credentials configured' );
             return new WP_Error(
                 'credentials_not_configured',
-                __( 'Export credentials have not been configured for this form.', 'gf-external-entry-export' ),
+                __( 'Export credentials have not been configured for this form.', 'izzygld-entry-export-for-gravity-forms' ),
                 array( 'status' => 403 )
             );
         }
@@ -277,7 +277,7 @@ class GF_EEE_API_HANDLER {
             header( 'WWW-Authenticate: Basic realm="GF Export"' );
             return new WP_Error(
                 'invalid_credentials',
-                __( 'Invalid username or password.', 'gf-external-entry-export' ),
+                __( 'Invalid username or password.', 'izzygld-entry-export-for-gravity-forms' ),
                 array( 'status' => 401 )
             );
         }
@@ -389,7 +389,7 @@ class GF_EEE_API_HANDLER {
         if ( ! $da_form ) {
             return new WP_Error(
                 'form_not_found',
-                __( 'Form not found.', 'gf-external-entry-export' ),
+                __( 'Form not found.', 'izzygld-entry-export-for-gravity-forms' ),
                 array( 'status' => 404 )
             );
         }
@@ -478,11 +478,11 @@ class GF_EEE_API_HANDLER {
                 if ( $da_remaining > 0 ) {
                     $da_link['time_remaining'] = human_time_diff( time(), $da_expires_timestamp );
                 } else {
-                    $da_link['time_remaining'] = __( 'Expired', 'gf-external-entry-export' );
+                    $da_link['time_remaining'] = __( 'Expired', 'izzygld-entry-export-for-gravity-forms' );
                 }
             } else {
-                $da_link['expires_at_formatted'] = __( 'Never', 'gf-external-entry-export' );
-                $da_link['time_remaining']       = __( 'Never', 'gf-external-entry-export' );
+                $da_link['expires_at_formatted'] = __( 'Never', 'izzygld-entry-export-for-gravity-forms' );
+                $da_link['time_remaining']       = __( 'Never', 'izzygld-entry-export-for-gravity-forms' );
             }
 
             // download info

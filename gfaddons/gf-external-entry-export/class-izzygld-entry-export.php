@@ -1,28 +1,28 @@
 <?php
 /**
- * Main GF External Entry Export Addon Class
+ * Main Izzygld Entry Export for Gravity Forms Addon Class
  *
  * this is where all the addon magic happens
  * extends GFAddOn to give us all that secure external export stuff
  *
- * @package GF_External_Entry_Export
+ * @package Izzygld_Entry_Export
  */
 
 // dont let anyone access this directly
 defined( 'ABSPATH' ) || exit;
 
 /**
- * GF_EEE_MAIN_ADDON class
+ * Izzygld_EEE_Addon class
  *
  * followin the GFAddOn pattern from the gf docs
  * this handles all the settings, ajax stuff, and ui rendering
  */
-class GF_EEE_MAIN_ADDON extends GFAddOn {
+class Izzygld_EEE_Addon extends GFAddOn {
 
     /**
      * holds an instance of this class, if we got one
      *
-     * @var GF_EEE_MAIN_ADDON|null
+     * @var Izzygld_EEE_Addon|null
      */
     private static $_instance = null;
 
@@ -31,28 +31,28 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      *
      * @var string
      */
-    protected $_version = GF_EXTERNAL_ENTRY_EXPORT_VERSION;
+    protected $_version = IZZYGLD_EEE_VERSION;
 
     /**
      * minimum gf version we need to work
      *
      * @var string
      */
-    protected $_min_gravityforms_version = GF_EXTERNAL_ENTRY_EXPORT_MIN_GF_VERSION;
+    protected $_min_gravityforms_version = IZZYGLD_EEE_MIN_GF_VERSION;
 
     /**
      * url-safe addon slug, gotta be max 33 chars
      *
      * @var string
      */
-    protected $_slug = 'gf-external-entry-export';
+    protected $_slug = 'izzygld-entry-export-for-gravity-forms';
 
     /**
      * path to plugin from the plugins folder
      *
      * @var string
      */
-    protected $_path = 'gf-external-entry-export/gf-external-entry-export.php';
+    protected $_path = 'izzygld-entry-export-for-gravity-forms/izzygld-entry-export-for-gravity-forms.php';
 
     /**
      * full path to the main plugin file
@@ -66,14 +66,14 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      *
      * @var string
      */
-    protected $_title = 'Gravity Forms External Entry Export';
+    protected $_title = 'Izzygld Entry Export for Gravity Forms';
 
     /**
      * shorter title for menus n stuff
      *
      * @var string
      */
-    protected $_short_title = 'External Export';
+    protected $_short_title = 'Izzygld Entry Export';
 
     /**
      * capabilites our addon uses for permissions
@@ -81,9 +81,9 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      * @var array
      */
     protected $_capabilities = array(
-        'gf_external_entry_export_settings',
-        'gf_external_entry_export_form_settings',
-        'gf_external_entry_export_manage_links',
+        'izzygld_entry_export_settings',
+        'izzygld_entry_export_form_settings',
+        'izzygld_entry_export_manage_links',
     );
 
     /**
@@ -91,33 +91,33 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      *
      * @var string
      */
-    protected $_capabilities_settings_page = 'gf_external_entry_export_settings';
+    protected $_capabilities_settings_page = 'izzygld_entry_export_settings';
 
     /**
      * capability needed for form setings
      *
      * @var string
      */
-    protected $_capabilities_form_settings = 'gf_external_entry_export_form_settings';
+    protected $_capabilities_form_settings = 'izzygld_entry_export_form_settings';
 
     /**
      * our token controller instance for handlin tokens
      *
-     * @var GF_EEE_TOKEN_CONTROLLER
+     * @var Izzygld_EEE_Token_Handler
      */
     public $token_controller;
 
     /**
      * our export maker instance for generatin csv stuff
      *
-     * @var GF_EEE_EXPORT_MAKER
+     * @var Izzygld_EEE_Export_Handler
      */
     public $export_maker;
 
     /**
      * our api handler instance for rest endpoints
      *
-     * @var GF_EEE_API_HANDLER
+     * @var Izzygld_EEE_REST_Controller
      */
     public $api_handler;
 
@@ -125,7 +125,7 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      * gets the singleton instance of this class
      * creates it if it dont exist yet
      *
-     * @return GF_EEE_MAIN_ADDON
+     * @return Izzygld_EEE_Addon
      */
     public static function get_instance() {
         if ( null === self::$_instance ) {
@@ -144,8 +144,8 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
         parent::pre_init();
 
         // spinnin up our handler classes
-        $this->token_controller = new GF_EEE_TOKEN_CONTROLLER();
-        $this->export_maker     = new GF_EEE_EXPORT_MAKER();
+        $this->token_controller = new Izzygld_EEE_Token_Handler();
+        $this->export_maker     = new Izzygld_EEE_Export_Handler();
 
         // gotta hook up ajax early so its available during admin-ajax.php requests
         // cuz GFAddOn::init_ajax() has some gatekeeping that might not pass
@@ -203,10 +203,10 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      * @return void
      */
     private function hookup_ajax_stuff() {
-        add_action( 'wp_ajax_gf_eee_generate_link', array( $this, 'ajax_make_da_link' ) );
-        add_action( 'wp_ajax_gf_eee_revoke_link', array( $this, 'ajax_kill_da_link' ) );
-        add_action( 'wp_ajax_gf_eee_get_links', array( $this, 'ajax_grab_links' ) );
-        add_action( 'wp_ajax_gf_eee_regenerate_creds', array( $this, 'ajax_remake_creds' ) );
+        add_action( 'wp_ajax_izzygld_eee_generate_link', array( $this, 'ajax_make_da_link' ) );
+        add_action( 'wp_ajax_izzygld_eee_revoke_link', array( $this, 'ajax_kill_da_link' ) );
+        add_action( 'wp_ajax_izzygld_eee_get_links', array( $this, 'ajax_grab_links' ) );
+        add_action( 'wp_ajax_izzygld_eee_regenerate_creds', array( $this, 'ajax_remake_creds' ) );
     }
 
     /**
@@ -216,7 +216,7 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      * @return void
      */
     public function setup_rest_routes() {
-        $this->api_handler = new GF_EEE_API_HANDLER( $this );
+        $this->api_handler = new Izzygld_EEE_REST_Controller( $this );
         $this->api_handler->setup_da_routes();
     }
 
@@ -230,13 +230,13 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      */
     public function add_toolbar_menu_item( $da_menu_items, $da_form_id ) {
         $da_menu_items['external_export'] = array(
-            'label'        => esc_html__( 'External Export', 'gf-external-entry-export' ),
-            'short_label'  => esc_html__( 'Export', 'gf-external-entry-export' ),
+            'label'        => esc_html__( 'External Export', 'izzygld-entry-export-for-gravity-forms' ),
+            'short_label'  => esc_html__( 'Export', 'izzygld-entry-export-for-gravity-forms' ),
             'icon'         => '<i class="gform-icon gform-icon--circle-arrow-down"></i>',
             'url'          => admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=' . $this->get_slug() . '&id=' . absint( $da_form_id ) ),
             'menu_class'   => 'gf_form_toolbar_external_export',
             'link_class'   => GFForms::get_page() === 'form_settings' && rgget( 'subview' ) === $this->get_slug() ? 'gf_toolbar_active' : '',
-            'capabilities' => array( 'gf_external_entry_export_form_settings', 'gravityforms_edit_forms', 'manage_options' ),
+            'capabilities' => array( 'izzygld_entry_export_form_settings', 'gravityforms_edit_forms', 'manage_options' ),
             'priority'     => 699,
         );
 
@@ -253,10 +253,10 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      */
     public function add_form_action( $da_actions, $da_form_id ) {
         $da_actions['external_export'] = array(
-            'label'        => esc_html__( 'External Export', 'gf-external-entry-export' ),
+            'label'        => esc_html__( 'External Export', 'izzygld-entry-export-for-gravity-forms' ),
             'url'          => admin_url( 'admin.php?page=gf_edit_forms&view=settings&subview=' . $this->get_slug() . '&id=' . absint( $da_form_id ) ),
             'menu_class'   => 'gf_form_toolbar_external_export',
-            'capabilities' => array( 'gf_external_entry_export_form_settings', 'gravityforms_edit_forms', 'manage_options' ),
+            'capabilities' => array( 'izzygld_entry_export_form_settings', 'gravityforms_edit_forms', 'manage_options' ),
             'priority'     => 699,
         );
 
@@ -289,72 +289,72 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
     public function plugin_settings_fields() {
         return array(
             array(
-                'title'       => esc_html__( 'External Entry Export Settings', 'gf-external-entry-export' ),
-                'description' => esc_html__( 'Configure global settings for external entry export links.', 'gf-external-entry-export' ),
+                'title'       => esc_html__( 'External Entry Export Settings', 'izzygld-entry-export-for-gravity-forms' ),
+                'description' => esc_html__( 'Configure global settings for external entry export links.', 'izzygld-entry-export-for-gravity-forms' ),
                 'fields'      => array(
                     array(
                         'name'          => 'default_expiration',
-                        'label'         => esc_html__( 'Default Link Expiration', 'gf-external-entry-export' ),
+                        'label'         => esc_html__( 'Default Link Expiration', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'          => 'select',
                         'default_value' => '24',
                         'choices'       => array(
-                            array( 'label' => esc_html__( '1 Hour', 'gf-external-entry-export' ), 'value' => '1' ),
-                            array( 'label' => esc_html__( '6 Hours', 'gf-external-entry-export' ), 'value' => '6' ),
-                            array( 'label' => esc_html__( '24 Hours', 'gf-external-entry-export' ), 'value' => '24' ),
-                            array( 'label' => esc_html__( '7 Days', 'gf-external-entry-export' ), 'value' => '168' ),
-                            array( 'label' => esc_html__( '30 Days', 'gf-external-entry-export' ), 'value' => '720' ),
-                            array( 'label' => esc_html__( 'Never', 'gf-external-entry-export' ), 'value' => '0' ),
+                            array( 'label' => esc_html__( '1 Hour', 'izzygld-entry-export-for-gravity-forms' ), 'value' => '1' ),
+                            array( 'label' => esc_html__( '6 Hours', 'izzygld-entry-export-for-gravity-forms' ), 'value' => '6' ),
+                            array( 'label' => esc_html__( '24 Hours', 'izzygld-entry-export-for-gravity-forms' ), 'value' => '24' ),
+                            array( 'label' => esc_html__( '7 Days', 'izzygld-entry-export-for-gravity-forms' ), 'value' => '168' ),
+                            array( 'label' => esc_html__( '30 Days', 'izzygld-entry-export-for-gravity-forms' ), 'value' => '720' ),
+                            array( 'label' => esc_html__( 'Never', 'izzygld-entry-export-for-gravity-forms' ), 'value' => '0' ),
                         ),
-                        'tooltip'       => esc_html__( 'How long export links remain valid by default.', 'gf-external-entry-export' ),
+                        'tooltip'       => esc_html__( 'How long export links remain valid by default.', 'izzygld-entry-export-for-gravity-forms' ),
                     ),
                     array(
                         'name'          => 'max_downloads',
-                        'label'         => esc_html__( 'Max Downloads Per Link', 'gf-external-entry-export' ),
+                        'label'         => esc_html__( 'Max Downloads Per Link', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'          => 'text',
                         'input_type'    => 'number',
                         'default_value' => '10',
-                        'tooltip'       => esc_html__( 'Maximum number of times a link can be used. Set to 0 for unlimited.', 'gf-external-entry-export' ),
+                        'tooltip'       => esc_html__( 'Maximum number of times a link can be used. Set to 0 for unlimited.', 'izzygld-entry-export-for-gravity-forms' ),
                     ),
                     array(
                         'name'          => 'enable_logging',
-                        'label'         => esc_html__( 'Enable Access Logging', 'gf-external-entry-export' ),
+                        'label'         => esc_html__( 'Enable Access Logging', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'          => 'checkbox',
                         'choices'       => array(
                             array(
-                                'label'         => esc_html__( 'Log all export link access attempts', 'gf-external-entry-export' ),
+                                'label'         => esc_html__( 'Log all export link access attempts', 'izzygld-entry-export-for-gravity-forms' ),
                                 'name'          => 'enable_logging',
                                 'default_value' => 1,
                             ),
                         ),
-                        'tooltip'       => esc_html__( 'Track when export links are accessed, including IP address and timestamp.', 'gf-external-entry-export' ),
+                        'tooltip'       => esc_html__( 'Track when export links are accessed, including IP address and timestamp.', 'izzygld-entry-export-for-gravity-forms' ),
                     ),
                     array(
                         'name'    => 'secret_key',
-                        'label'   => esc_html__( 'Token Secret Key', 'gf-external-entry-export' ),
+                        'label'   => esc_html__( 'Token Secret Key', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'    => 'text',
                         'class'   => 'medium code',
-                        'tooltip' => esc_html__( 'Secret key used to sign export tokens. Auto-generated if empty.', 'gf-external-entry-export' ),
-                        'after_input' => '<button type="button" class="button" onclick="gfEEEGenerateKey();">' . esc_html__( 'Generate', 'gf-external-entry-export' ) . '</button>',
+                        'tooltip' => esc_html__( 'Secret key used to sign export tokens. Auto-generated if empty.', 'izzygld-entry-export-for-gravity-forms' ),
+                        'after_input' => '<button type="button" class="button" onclick="gfEEEGenerateKey();">' . esc_html__( 'Generate', 'izzygld-entry-export-for-gravity-forms' ) . '</button>',
                     ),
                 ),
             ),
             array(
-                'title'  => esc_html__( 'Security', 'gf-external-entry-export' ),
+                'title'  => esc_html__( 'Security', 'izzygld-entry-export-for-gravity-forms' ),
                 'fields' => array(
                     array(
                         'name'    => 'allowed_ips',
-                        'label'   => esc_html__( 'IP Allowlist', 'gf-external-entry-export' ),
+                        'label'   => esc_html__( 'IP Allowlist', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'    => 'textarea',
                         'class'   => 'medium',
-                        'tooltip' => esc_html__( 'Restrict export access to specific IP addresses (one per line). Leave empty to allow all.', 'gf-external-entry-export' ),
+                        'tooltip' => esc_html__( 'Restrict export access to specific IP addresses (one per line). Leave empty to allow all.', 'izzygld-entry-export-for-gravity-forms' ),
                     ),
                     array(
                         'name'    => 'require_user_agent',
-                        'label'   => esc_html__( 'Require User Agent', 'gf-external-entry-export' ),
+                        'label'   => esc_html__( 'Require User Agent', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'    => 'checkbox',
                         'choices' => array(
                             array(
-                                'label' => esc_html__( 'Block requests without a valid user agent', 'gf-external-entry-export' ),
+                                'label' => esc_html__( 'Block requests without a valid user agent', 'izzygld-entry-export-for-gravity-forms' ),
                                 'name'  => 'require_user_agent',
                             ),
                         ),
@@ -393,16 +393,16 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
 
         return array(
             array(
-                'title'       => esc_html__( 'External Export Settings', 'gf-external-entry-export' ),
-                'description' => esc_html__( 'Configure which fields are available for external export.', 'gf-external-entry-export' ),
+                'title'       => esc_html__( 'External Export Settings', 'izzygld-entry-export-for-gravity-forms' ),
+                'description' => esc_html__( 'Configure which fields are available for external export.', 'izzygld-entry-export-for-gravity-forms' ),
                 'fields'      => array(
                     array(
                         'name'    => 'enable_export',
-                        'label'   => esc_html__( 'Enable External Export', 'gf-external-entry-export' ),
+                        'label'   => esc_html__( 'Enable External Export', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'    => 'checkbox',
                         'choices' => array(
                             array(
-                                'label'         => esc_html__( 'Allow generating external export links for this form', 'gf-external-entry-export' ),
+                                'label'         => esc_html__( 'Allow generating external export links for this form', 'izzygld-entry-export-for-gravity-forms' ),
                                 'name'          => 'enable_export',
                                 'default_value' => 0,
                             ),
@@ -410,10 +410,10 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
                     ),
                     array(
                         'name'       => 'allowed_fields',
-                        'label'      => esc_html__( 'Exportable Fields', 'gf-external-entry-export' ),
+                        'label'      => esc_html__( 'Exportable Fields', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'       => 'checkbox',
                         'choices'    => $da_field_choices,
-                        'tooltip'    => esc_html__( 'Select which fields can be included in external exports.', 'gf-external-entry-export' ),
+                        'tooltip'    => esc_html__( 'Select which fields can be included in external exports.', 'izzygld-entry-export-for-gravity-forms' ),
                         'dependency' => array(
                             'live'   => true,
                             'fields' => array(
@@ -425,27 +425,27 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
                     ),
                     array(
                         'name'       => 'include_meta',
-                        'label'      => esc_html__( 'Include Entry Metadata', 'gf-external-entry-export' ),
+                        'label'      => esc_html__( 'Include Entry Metadata', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'       => 'checkbox',
                         'choices'    => array(
                             array(
-                                'label' => esc_html__( 'Entry ID', 'gf-external-entry-export' ),
+                                'label' => esc_html__( 'Entry ID', 'izzygld-entry-export-for-gravity-forms' ),
                                 'name'  => 'include_entry_id',
                             ),
                             array(
-                                'label' => esc_html__( 'Date Created', 'gf-external-entry-export' ),
+                                'label' => esc_html__( 'Date Created', 'izzygld-entry-export-for-gravity-forms' ),
                                 'name'  => 'include_date_created',
                             ),
                             array(
-                                'label' => esc_html__( 'Entry Status', 'gf-external-entry-export' ),
+                                'label' => esc_html__( 'Entry Status', 'izzygld-entry-export-for-gravity-forms' ),
                                 'name'  => 'include_status',
                             ),
                             array(
-                                'label' => esc_html__( 'Source URL', 'gf-external-entry-export' ),
+                                'label' => esc_html__( 'Source URL', 'izzygld-entry-export-for-gravity-forms' ),
                                 'name'  => 'include_source_url',
                             ),
                             array(
-                                'label' => esc_html__( 'IP Address', 'gf-external-entry-export' ),
+                                'label' => esc_html__( 'IP Address', 'izzygld-entry-export-for-gravity-forms' ),
                                 'name'  => 'include_ip',
                             ),
                         ),
@@ -461,17 +461,17 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
                 ),
             ),
             array(
-                'title'  => esc_html__( 'Filter Settings', 'gf-external-entry-export' ),
+                'title'  => esc_html__( 'Filter Settings', 'izzygld-entry-export-for-gravity-forms' ),
                 'fields' => array(
                     array(
                         'name'       => 'default_status_filter',
-                        'label'      => esc_html__( 'Default Entry Status', 'gf-external-entry-export' ),
+                        'label'      => esc_html__( 'Default Entry Status', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'       => 'select',
                         'choices'    => array(
-                            array( 'label' => esc_html__( 'Active Only', 'gf-external-entry-export' ), 'value' => 'active' ),
-                            array( 'label' => esc_html__( 'All Entries', 'gf-external-entry-export' ), 'value' => 'all' ),
-                            array( 'label' => esc_html__( 'Spam', 'gf-external-entry-export' ), 'value' => 'spam' ),
-                            array( 'label' => esc_html__( 'Trash', 'gf-external-entry-export' ), 'value' => 'trash' ),
+                            array( 'label' => esc_html__( 'Active Only', 'izzygld-entry-export-for-gravity-forms' ), 'value' => 'active' ),
+                            array( 'label' => esc_html__( 'All Entries', 'izzygld-entry-export-for-gravity-forms' ), 'value' => 'all' ),
+                            array( 'label' => esc_html__( 'Spam', 'izzygld-entry-export-for-gravity-forms' ), 'value' => 'spam' ),
+                            array( 'label' => esc_html__( 'Trash', 'izzygld-entry-export-for-gravity-forms' ), 'value' => 'trash' ),
                         ),
                         'dependency' => array(
                             'live'   => true,
@@ -484,11 +484,11 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
                     ),
                     array(
                         'name'       => 'allow_date_filter',
-                        'label'      => esc_html__( 'Allow Date Filtering', 'gf-external-entry-export' ),
+                        'label'      => esc_html__( 'Allow Date Filtering', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'       => 'checkbox',
                         'choices'    => array(
                             array(
-                                'label'         => esc_html__( 'Allow admins to specify date range when generating links', 'gf-external-entry-export' ),
+                                'label'         => esc_html__( 'Allow admins to specify date range when generating links', 'izzygld-entry-export-for-gravity-forms' ),
                                 'name'          => 'allow_date_filter',
                                 'default_value' => 1,
                             ),
@@ -505,8 +505,8 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
                 ),
             ),
             array(
-                'title'       => esc_html__( 'Credentials', 'gf-external-entry-export' ),
-                'description' => esc_html__( 'The external client must provide these credentials (HTTP Basic Auth) to download entries from this form.', 'gf-external-entry-export' ),
+                'title'       => esc_html__( 'Credentials', 'izzygld-entry-export-for-gravity-forms' ),
+                'description' => esc_html__( 'The external client must provide these credentials (HTTP Basic Auth) to download entries from this form.', 'izzygld-entry-export-for-gravity-forms' ),
                 'dependency'  => array(
                     'live'   => true,
                     'fields' => array(
@@ -518,31 +518,31 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
                 'fields'      => array(
                     array(
                         'name'       => 'export_username',
-                        'label'      => esc_html__( 'Username', 'gf-external-entry-export' ),
+                        'label'      => esc_html__( 'Username', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'       => 'html',
-                        'html'       => '<code id="gf-eee-cred-username" style="font-size:14px;user-select:all;">'
+                        'html'       => '<code id="izzygld-eee-cred-username" style="font-size:14px;user-select:all;">'
                             . esc_html( rgar( $da_form_settings, 'export_username', '' ) )
                             . '</code> '
-                            . '<button type="button" class="button button-small gf-eee-copy-field" data-target="gf-eee-cred-username">'
-                            . esc_html__( 'Copy', 'gf-external-entry-export' )
+                            . '<button type="button" class="button button-small izzygld-eee-copy-field" data-target="izzygld-eee-cred-username">'
+                            . esc_html__( 'Copy', 'izzygld-entry-export-for-gravity-forms' )
                             . '</button>',
-                        'tooltip'    => esc_html__( 'The username the external client enters to authenticate.', 'gf-external-entry-export' ),
+                        'tooltip'    => esc_html__( 'The username the external client enters to authenticate.', 'izzygld-entry-export-for-gravity-forms' ),
                     ),
                     array(
                         'name'        => 'export_password_display',
-                        'label'       => esc_html__( 'Password', 'gf-external-entry-export' ),
+                        'label'       => esc_html__( 'Password', 'izzygld-entry-export-for-gravity-forms' ),
                         'type'        => 'html',
-                        'html'        => '<code id="gf-eee-cred-password" style="font-size:14px;user-select:all;">'
+                        'html'        => '<code id="izzygld-eee-cred-password" style="font-size:14px;user-select:all;">'
                             . esc_html( rgar( $da_form_settings, 'export_password', '' ) )
                             . '</code> '
-                            . '<button type="button" class="button button-small gf-eee-copy-field" data-target="gf-eee-cred-password">'
-                            . esc_html__( 'Copy', 'gf-external-entry-export' )
+                            . '<button type="button" class="button button-small izzygld-eee-copy-field" data-target="izzygld-eee-cred-password">'
+                            . esc_html__( 'Copy', 'izzygld-entry-export-for-gravity-forms' )
                             . '</button>'
                             . '<br><br>'
-                            . '<button type="button" class="button" id="gf-eee-regenerate-creds">'
-                            . esc_html__( 'Regenerate Credentials', 'gf-external-entry-export' )
+                            . '<button type="button" class="button" id="izzygld-eee-regenerate-creds">'
+                            . esc_html__( 'Regenerate Credentials', 'izzygld-entry-export-for-gravity-forms' )
                             . '</button>',
-                        'tooltip'     => esc_html__( 'The password the external client enters to authenticate.', 'gf-external-entry-export' ),
+                        'tooltip'     => esc_html__( 'The password the external client enters to authenticate.', 'izzygld-entry-export-for-gravity-forms' ),
                     ),
                 ),
             ),
@@ -626,7 +626,7 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
     public function add_form_settings_menu( $da_menu_items, $da_form_id ) {
         $da_menu_items[] = array(
             'name'         => $this->_slug,
-            'label'        => esc_html__( 'External Downloads', 'gf-external-entry-export' ),
+            'label'        => esc_html__( 'External Downloads', 'izzygld-entry-export-for-gravity-forms' ),
             'icon'         => $this->get_menu_icon(),
             'capabilities' => array( $this->_capabilities_form_settings ),
         );
@@ -654,140 +654,140 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
         $da_form_settings = $this->get_form_settings( $da_form );
         $is_turned_on     = ! empty( $da_form_settings['enable_export'] );
         ?>
-        <div class="gf-eee-form-management" data-form-id="<?php echo esc_attr( $da_form_id ); ?>">
+        <div class="izzygld-eee-form-management" data-form-id="<?php echo esc_attr( $da_form_id ); ?>">
             <hr style="margin: 30px 0;">
-            <h3><?php esc_html_e( 'Export Link Management', 'gf-external-entry-export' ); ?></h3>
+            <h3><?php esc_html_e( 'Export Link Management', 'izzygld-entry-export-for-gravity-forms' ); ?></h3>
 
             <?php if ( ! $is_turned_on ) : ?>
                 <div class="gform-alert gform-alert--warning" style="padding: 12px 16px; margin-bottom: 16px;">
-                    <p><?php esc_html_e( 'Enable "Allow generating external export links for this form" above, then save settings to manage export links.', 'gf-external-entry-export' ); ?></p>
+                    <p><?php esc_html_e( 'Enable "Allow generating external export links for this form" above, then save settings to manage export links.', 'izzygld-entry-export-for-gravity-forms' ); ?></p>
                 </div>
             <?php else : ?>
 
-                <div class="gf-eee-generate-section">
-                    <h4><?php esc_html_e( 'Generate New Export Link', 'gf-external-entry-export' ); ?></h4>
+                <div class="izzygld-eee-generate-section">
+                    <h4><?php esc_html_e( 'Generate New Export Link', 'izzygld-entry-export-for-gravity-forms' ); ?></h4>
 
-                    <input type="hidden" id="gf-eee-form-id" value="<?php echo esc_attr( $da_form_id ); ?>">
+                    <input type="hidden" id="izzygld-eee-form-id" value="<?php echo esc_attr( $da_form_id ); ?>">
 
-                    <table class="form-table gf-eee-generate-table">
+                    <table class="form-table izzygld-eee-generate-table">
                         <tr>
                             <th scope="row">
-                                <label for="gf-eee-description"><?php esc_html_e( 'Description', 'gf-external-entry-export' ); ?></label>
+                                <label for="izzygld-eee-description"><?php esc_html_e( 'Description', 'izzygld-entry-export-for-gravity-forms' ); ?></label>
                             </th>
                             <td>
-                                <input type="text" id="gf-eee-description" name="description" class="regular-text"
-                                       placeholder="<?php esc_attr_e( 'e.g., Export for Vendor ABC', 'gf-external-entry-export' ); ?>">
+                                <input type="text" id="izzygld-eee-description" name="description" class="regular-text"
+                                       placeholder="<?php esc_attr_e( 'e.g., Export for Vendor ABC', 'izzygld-entry-export-for-gravity-forms' ); ?>">
                             </td>
                         </tr>
                         <tr>
                             <th scope="row">
-                                <label><?php esc_html_e( 'Fields to Export', 'gf-external-entry-export' ); ?></label>
+                                <label><?php esc_html_e( 'Fields to Export', 'izzygld-entry-export-for-gravity-forms' ); ?></label>
                             </th>
                             <td>
-                                <div id="gf-eee-fields-container">
-                                    <p class="description"><?php esc_html_e( 'Loading fields...', 'gf-external-entry-export' ); ?></p>
+                                <div id="izzygld-eee-fields-container">
+                                    <p class="description"><?php esc_html_e( 'Loading fields...', 'izzygld-entry-export-for-gravity-forms' ); ?></p>
                                 </div>
                             </td>
                         </tr>
                         <tr>
                             <th scope="row">
-                                <label for="gf-eee-expiration"><?php esc_html_e( 'Link Expiration', 'gf-external-entry-export' ); ?></label>
+                                <label for="izzygld-eee-expiration"><?php esc_html_e( 'Link Expiration', 'izzygld-entry-export-for-gravity-forms' ); ?></label>
                             </th>
                             <td>
-                                <select id="gf-eee-expiration" name="expiration">
-                                    <option value="1"><?php esc_html_e( '1 Hour', 'gf-external-entry-export' ); ?></option>
-                                    <option value="6"><?php esc_html_e( '6 Hours', 'gf-external-entry-export' ); ?></option>
-                                    <option value="24" selected><?php esc_html_e( '24 Hours', 'gf-external-entry-export' ); ?></option>
-                                    <option value="168"><?php esc_html_e( '7 Days', 'gf-external-entry-export' ); ?></option>
-                                    <option value="720"><?php esc_html_e( '30 Days', 'gf-external-entry-export' ); ?></option>
-                                    <option value="0"><?php esc_html_e( 'Never Expires', 'gf-external-entry-export' ); ?></option>
+                                <select id="izzygld-eee-expiration" name="expiration">
+                                    <option value="1"><?php esc_html_e( '1 Hour', 'izzygld-entry-export-for-gravity-forms' ); ?></option>
+                                    <option value="6"><?php esc_html_e( '6 Hours', 'izzygld-entry-export-for-gravity-forms' ); ?></option>
+                                    <option value="24" selected><?php esc_html_e( '24 Hours', 'izzygld-entry-export-for-gravity-forms' ); ?></option>
+                                    <option value="168"><?php esc_html_e( '7 Days', 'izzygld-entry-export-for-gravity-forms' ); ?></option>
+                                    <option value="720"><?php esc_html_e( '30 Days', 'izzygld-entry-export-for-gravity-forms' ); ?></option>
+                                    <option value="0"><?php esc_html_e( 'Never Expires', 'izzygld-entry-export-for-gravity-forms' ); ?></option>
                                 </select>
                             </td>
                         </tr>
                         <tr>
                             <th scope="row">
-                                <label><?php esc_html_e( 'Date Range (Optional)', 'gf-external-entry-export' ); ?></label>
+                                <label><?php esc_html_e( 'Date Range (Optional)', 'izzygld-entry-export-for-gravity-forms' ); ?></label>
                             </th>
                             <td>
-                                <input type="date" id="gf-eee-start-date" name="start_date">
-                                <span><?php esc_html_e( 'to', 'gf-external-entry-export' ); ?></span>
-                                <input type="date" id="gf-eee-end-date" name="end_date">
+                                <input type="date" id="izzygld-eee-start-date" name="start_date">
+                                <span><?php esc_html_e( 'to', 'izzygld-entry-export-for-gravity-forms' ); ?></span>
+                                <input type="date" id="izzygld-eee-end-date" name="end_date">
                             </td>
                         </tr>
                         <tr>
                             <th scope="row">
-                                <label for="gf-eee-status"><?php esc_html_e( 'Entry Status', 'gf-external-entry-export' ); ?></label>
+                                <label for="izzygld-eee-status"><?php esc_html_e( 'Entry Status', 'izzygld-entry-export-for-gravity-forms' ); ?></label>
                             </th>
                             <td>
-                                <select id="gf-eee-status" name="status">
-                                    <option value="active"><?php esc_html_e( 'Active Only', 'gf-external-entry-export' ); ?></option>
-                                    <option value="all"><?php esc_html_e( 'All Entries', 'gf-external-entry-export' ); ?></option>
+                                <select id="izzygld-eee-status" name="status">
+                                    <option value="active"><?php esc_html_e( 'Active Only', 'izzygld-entry-export-for-gravity-forms' ); ?></option>
+                                    <option value="all"><?php esc_html_e( 'All Entries', 'izzygld-entry-export-for-gravity-forms' ); ?></option>
                                 </select>
                             </td>
                         </tr>
                     </table>
 
                     <p class="submit">
-                        <button type="button" class="button button-primary" id="gf-eee-generate-btn">
-                            <?php esc_html_e( 'Generate Export Link', 'gf-external-entry-export' ); ?>
+                        <button type="button" class="button button-primary" id="izzygld-eee-generate-btn">
+                            <?php esc_html_e( 'Generate Export Link', 'izzygld-entry-export-for-gravity-forms' ); ?>
                         </button>
                     </p>
                 </div>
 
-                <div id="gf-eee-result" class="gf-eee-result hidden">
-                    <h4><?php esc_html_e( 'Export Link Generated', 'gf-external-entry-export' ); ?></h4>
+                <div id="izzygld-eee-result" class="izzygld-eee-result hidden">
+                    <h4><?php esc_html_e( 'Export Link Generated', 'izzygld-entry-export-for-gravity-forms' ); ?></h4>
 
-                    <div class="gf-eee-credentials-section" style="background:#fff8e1;border-left:4px solid #f0c33c;padding:12px 16px;margin-bottom:16px;">
-                        <p style="margin:0 0 8px;"><strong><?php esc_html_e( 'Save these credentials now — they will not be shown again.', 'gf-external-entry-export' ); ?></strong></p>
+                    <div class="izzygld-eee-credentials-section" style="background:#fff8e1;border-left:4px solid #f0c33c;padding:12px 16px;margin-bottom:16px;">
+                        <p style="margin:0 0 8px;"><strong><?php esc_html_e( 'Save these credentials now — they will not be shown again.', 'izzygld-entry-export-for-gravity-forms' ); ?></strong></p>
                         <table class="form-table" style="margin:0;">
                             <tr>
-                                <th style="padding:4px 10px 4px 0;width:100px;"><?php esc_html_e( 'Username', 'gf-external-entry-export' ); ?></th>
+                                <th style="padding:4px 10px 4px 0;width:100px;"><?php esc_html_e( 'Username', 'izzygld-entry-export-for-gravity-forms' ); ?></th>
                                 <td style="padding:4px 0;">
-                                    <code id="gf-eee-client-username" style="font-size:14px;"></code>
-                                    <button type="button" class="button button-small gf-eee-copy-field" data-target="gf-eee-client-username"><?php esc_html_e( 'Copy', 'gf-external-entry-export' ); ?></button>
+                                    <code id="izzygld-eee-client-username" style="font-size:14px;"></code>
+                                    <button type="button" class="button button-small izzygld-eee-copy-field" data-target="izzygld-eee-client-username"><?php esc_html_e( 'Copy', 'izzygld-entry-export-for-gravity-forms' ); ?></button>
                                 </td>
                             </tr>
                             <tr>
-                                <th style="padding:4px 10px 4px 0;width:100px;"><?php esc_html_e( 'Password', 'gf-external-entry-export' ); ?></th>
+                                <th style="padding:4px 10px 4px 0;width:100px;"><?php esc_html_e( 'Password', 'izzygld-entry-export-for-gravity-forms' ); ?></th>
                                 <td style="padding:4px 0;">
-                                    <code id="gf-eee-client-password" style="font-size:14px;"></code>
-                                    <button type="button" class="button button-small gf-eee-copy-field" data-target="gf-eee-client-password"><?php esc_html_e( 'Copy', 'gf-external-entry-export' ); ?></button>
+                                    <code id="izzygld-eee-client-password" style="font-size:14px;"></code>
+                                    <button type="button" class="button button-small izzygld-eee-copy-field" data-target="izzygld-eee-client-password"><?php esc_html_e( 'Copy', 'izzygld-entry-export-for-gravity-forms' ); ?></button>
                                 </td>
                             </tr>
                         </table>
                     </div>
 
-                    <div class="gf-eee-url-container">
-                        <label for="gf-eee-url"><strong><?php esc_html_e( 'Export URL', 'gf-external-entry-export' ); ?></strong></label>
-                        <input type="text" id="gf-eee-url" readonly class="large-text" style="margin-top:4px;">
-                        <button type="button" class="button" id="gf-eee-copy-btn">
-                            <?php esc_html_e( 'Copy URL', 'gf-external-entry-export' ); ?>
+                    <div class="izzygld-eee-url-container">
+                        <label for="izzygld-eee-url"><strong><?php esc_html_e( 'Export URL', 'izzygld-entry-export-for-gravity-forms' ); ?></strong></label>
+                        <input type="text" id="izzygld-eee-url" readonly class="large-text" style="margin-top:4px;">
+                        <button type="button" class="button" id="izzygld-eee-copy-btn">
+                            <?php esc_html_e( 'Copy URL', 'izzygld-entry-export-for-gravity-forms' ); ?>
                         </button>
                     </div>
-                    <p class="description" id="gf-eee-expiry-info"></p>
+                    <p class="description" id="izzygld-eee-expiry-info"></p>
                     <p class="description">
-                        <?php esc_html_e( 'The external client must provide the username and password via HTTP Basic Auth to download.', 'gf-external-entry-export' ); ?>
+                        <?php esc_html_e( 'The external client must provide the username and password via HTTP Basic Auth to download.', 'izzygld-entry-export-for-gravity-forms' ); ?>
                     </p>
                 </div>
 
                 <hr style="margin: 30px 0;">
 
-                <div class="gf-eee-links-section">
-                    <h4><?php esc_html_e( 'Active Export Links', 'gf-external-entry-export' ); ?></h4>
-                    <table class="wp-list-table widefat fixed striped" id="gf-eee-links-table">
+                <div class="izzygld-eee-links-section">
+                    <h4><?php esc_html_e( 'Active Export Links', 'izzygld-entry-export-for-gravity-forms' ); ?></h4>
+                    <table class="wp-list-table widefat fixed striped" id="izzygld-eee-links-table">
                         <thead>
                             <tr>
-                                <th><?php esc_html_e( 'Description', 'gf-external-entry-export' ); ?></th>
-                                <th><?php esc_html_e( 'Client Username', 'gf-external-entry-export' ); ?></th>
-                                <th><?php esc_html_e( 'Created', 'gf-external-entry-export' ); ?></th>
-                                <th><?php esc_html_e( 'Expires', 'gf-external-entry-export' ); ?></th>
-                                <th><?php esc_html_e( 'Downloads', 'gf-external-entry-export' ); ?></th>
-                                <th><?php esc_html_e( 'Actions', 'gf-external-entry-export' ); ?></th>
+                                <th><?php esc_html_e( 'Description', 'izzygld-entry-export-for-gravity-forms' ); ?></th>
+                                <th><?php esc_html_e( 'Client Username', 'izzygld-entry-export-for-gravity-forms' ); ?></th>
+                                <th><?php esc_html_e( 'Created', 'izzygld-entry-export-for-gravity-forms' ); ?></th>
+                                <th><?php esc_html_e( 'Expires', 'izzygld-entry-export-for-gravity-forms' ); ?></th>
+                                <th><?php esc_html_e( 'Downloads', 'izzygld-entry-export-for-gravity-forms' ); ?></th>
+                                <th><?php esc_html_e( 'Actions', 'izzygld-entry-export-for-gravity-forms' ); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="6"><?php esc_html_e( 'Loading...', 'gf-external-entry-export' ); ?></td>
+                                <td colspan="6"><?php esc_html_e( 'Loading...', 'izzygld-entry-export-for-gravity-forms' ); ?></td>
                             </tr>
                         </tbody>
                     </table>
@@ -807,7 +807,7 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
     public function scripts() {
         $da_scripts = array(
             array(
-                'handle'  => 'gf_eee_admin',
+                'handle'  => 'izzygld_eee_admin',
                 'src'     => $this->get_base_url() . '/assets/js/admin.js',
                 'version' => $this->_version,
                 'deps'    => array( 'jquery', 'wp-util', 'wp-api-request' ),
@@ -817,13 +817,13 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
                     ),
                 ),
                 'strings' => array(
-                    'nonce'            => wp_create_nonce( 'gf_eee_admin' ),
-                    'generating'       => esc_html__( 'Generating...', 'gf-external-entry-export' ),
-                    'copied'           => esc_html__( 'Copied!', 'gf-external-entry-export' ),
-                    'copy_failed'      => esc_html__( 'Copy failed', 'gf-external-entry-export' ),
-                    'confirm_revoke'   => esc_html__( 'Are you sure you want to revoke this export link?', 'gf-external-entry-export' ),
-                    'link_revoked'     => esc_html__( 'Link revoked', 'gf-external-entry-export' ),
-                    'error'            => esc_html__( 'An error occurred', 'gf-external-entry-export' ),
+                    'nonce'            => wp_create_nonce( 'izzygld_eee_admin' ),
+                    'generating'       => esc_html__( 'Generating...', 'izzygld-entry-export-for-gravity-forms' ),
+                    'copied'           => esc_html__( 'Copied!', 'izzygld-entry-export-for-gravity-forms' ),
+                    'copy_failed'      => esc_html__( 'Copy failed', 'izzygld-entry-export-for-gravity-forms' ),
+                    'confirm_revoke'   => esc_html__( 'Are you sure you want to revoke this export link?', 'izzygld-entry-export-for-gravity-forms' ),
+                    'link_revoked'     => esc_html__( 'Link revoked', 'izzygld-entry-export-for-gravity-forms' ),
+                    'error'            => esc_html__( 'An error occurred', 'izzygld-entry-export-for-gravity-forms' ),
                 ),
             ),
         );
@@ -840,7 +840,7 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
     public function styles() {
         $da_styles = array(
             array(
-                'handle'  => 'gf_eee_admin',
+                'handle'  => 'izzygld_eee_admin',
                 'src'     => $this->get_base_url() . '/assets/css/admin.css',
                 'version' => $this->_version,
                 'enqueue' => array(
@@ -861,10 +861,10 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      * @return void
      */
     public function ajax_make_da_link() {
-        check_ajax_referer( 'gf_eee_admin', 'nonce' );
+        check_ajax_referer( 'izzygld_eee_admin', 'nonce' );
 
-        if ( ! $this->current_user_can_any( array( 'gf_external_entry_export_manage_links', 'gravityforms_edit_entries', 'manage_options' ) ) ) {
-            wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'gf-external-entry-export' ) ) );
+        if ( ! $this->current_user_can_any( array( 'izzygld_entry_export_manage_links', 'gravityforms_edit_entries', 'manage_options' ) ) ) {
+            wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'izzygld-entry-export-for-gravity-forms' ) ) );
         }
 
         $da_form_id     = absint( rgpost( 'form_id' ) );
@@ -876,13 +876,13 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
         $da_description = sanitize_text_field( rgpost( 'description' ) );
 
         if ( ! $da_form_id ) {
-            wp_send_json_error( array( 'message' => esc_html__( 'Invalid form ID.', 'gf-external-entry-export' ) ) );
+            wp_send_json_error( array( 'message' => esc_html__( 'Invalid form ID.', 'izzygld-entry-export-for-gravity-forms' ) ) );
         }
 
         // makin sure export is enabled for this form
         $da_form_settings = $this->get_form_settings( GFAPI::get_form( $da_form_id ) );
         if ( empty( $da_form_settings['enable_export'] ) ) {
-            wp_send_json_error( array( 'message' => esc_html__( 'External export is not enabled for this form.', 'gf-external-entry-export' ) ) );
+            wp_send_json_error( array( 'message' => esc_html__( 'External export is not enabled for this form.', 'izzygld-entry-export-for-gravity-forms' ) ) );
         }
 
         $da_token_data = array(
@@ -915,16 +915,16 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      * @return void
      */
     public function ajax_kill_da_link() {
-        check_ajax_referer( 'gf_eee_admin', 'nonce' );
+        check_ajax_referer( 'izzygld_eee_admin', 'nonce' );
 
-        if ( ! $this->current_user_can_any( array( 'gf_external_entry_export_manage_links', 'gravityforms_edit_entries', 'manage_options' ) ) ) {
-            wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'gf-external-entry-export' ) ) );
+        if ( ! $this->current_user_can_any( array( 'izzygld_entry_export_manage_links', 'gravityforms_edit_entries', 'manage_options' ) ) ) {
+            wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'izzygld-entry-export-for-gravity-forms' ) ) );
         }
 
         $da_token_id = sanitize_text_field( rgpost( 'token_id' ) );
 
         if ( ! $da_token_id ) {
-            wp_send_json_error( array( 'message' => esc_html__( 'Invalid token ID.', 'gf-external-entry-export' ) ) );
+            wp_send_json_error( array( 'message' => esc_html__( 'Invalid token ID.', 'izzygld-entry-export-for-gravity-forms' ) ) );
         }
 
         $da_result = $this->token_controller->kill_da_token( $da_token_id );
@@ -933,7 +933,7 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
             wp_send_json_error( array( 'message' => $da_result->get_error_message() ) );
         }
 
-        wp_send_json_success( array( 'message' => esc_html__( 'Link revoked successfully.', 'gf-external-entry-export' ) ) );
+        wp_send_json_success( array( 'message' => esc_html__( 'Link revoked successfully.', 'izzygld-entry-export-for-gravity-forms' ) ) );
     }
 
     /**
@@ -943,15 +943,15 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      * @return void
      */
     public function ajax_remake_creds() {
-        check_ajax_referer( 'gf_eee_admin', 'nonce' );
+        check_ajax_referer( 'izzygld_eee_admin', 'nonce' );
 
-        if ( ! $this->current_user_can_any( array( 'gf_external_entry_export_form_settings', 'gravityforms_edit_forms', 'manage_options' ) ) ) {
-            wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'gf-external-entry-export' ) ) );
+        if ( ! $this->current_user_can_any( array( 'izzygld_entry_export_form_settings', 'gravityforms_edit_forms', 'manage_options' ) ) ) {
+            wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'izzygld-entry-export-for-gravity-forms' ) ) );
         }
 
         $da_form_id = absint( rgpost( 'form_id' ) );
         if ( ! $da_form_id ) {
-            wp_send_json_error( array( 'message' => esc_html__( 'Invalid form ID.', 'gf-external-entry-export' ) ) );
+            wp_send_json_error( array( 'message' => esc_html__( 'Invalid form ID.', 'izzygld-entry-export-for-gravity-forms' ) ) );
         }
 
         $da_form          = GFAPI::get_form( $da_form_id );
@@ -980,16 +980,16 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      * @return void
      */
     public function ajax_grab_links() {
-        check_ajax_referer( 'gf_eee_admin', 'nonce' );
+        check_ajax_referer( 'izzygld_eee_admin', 'nonce' );
 
-        if ( ! $this->current_user_can_any( array( 'gf_external_entry_export_manage_links', 'gravityforms_edit_entries', 'manage_options' ) ) ) {
-            wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'gf-external-entry-export' ) ) );
+        if ( ! $this->current_user_can_any( array( 'izzygld_entry_export_manage_links', 'gravityforms_edit_entries', 'manage_options' ) ) ) {
+            wp_send_json_error( array( 'message' => esc_html__( 'Permission denied.', 'izzygld-entry-export-for-gravity-forms' ) ) );
         }
 
         $da_form_id = absint( rgpost( 'form_id' ) );
 
         if ( ! $da_form_id ) {
-            wp_send_json_error( array( 'message' => esc_html__( 'Invalid form ID.', 'gf-external-entry-export' ) ) );
+            wp_send_json_error( array( 'message' => esc_html__( 'Invalid form ID.', 'izzygld-entry-export-for-gravity-forms' ) ) );
         }
 
         $da_links = $this->token_controller->grab_tokens_for_form( $da_form_id );
@@ -1044,24 +1044,24 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
     private function render_overview_page() {
         $da_forms = GFAPI::get_forms();
         ?>
-        <div class="wrap gf-eee-management">
-            <h1><?php esc_html_e( 'External Downloads Overview', 'gf-external-entry-export' ); ?></h1>
+        <div class="wrap izzygld-eee-management">
+            <h1><?php esc_html_e( 'External Downloads Overview', 'izzygld-entry-export-for-gravity-forms' ); ?></h1>
             <p class="description" style="margin-bottom: 20px;">
-                <?php esc_html_e( 'Manage export links from each form\'s settings. Go to a form below and click the "External Downloads" tab.', 'gf-external-entry-export' ); ?>
+                <?php esc_html_e( 'Manage export links from each form\'s settings. Go to a form below and click the "External Downloads" tab.', 'izzygld-entry-export-for-gravity-forms' ); ?>
             </p>
 
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
-                        <th><?php esc_html_e( 'Form', 'gf-external-entry-export' ); ?></th>
-                        <th><?php esc_html_e( 'Export Enabled', 'gf-external-entry-export' ); ?></th>
-                        <th><?php esc_html_e( 'Active Links', 'gf-external-entry-export' ); ?></th>
-                        <th><?php esc_html_e( 'Actions', 'gf-external-entry-export' ); ?></th>
+                        <th><?php esc_html_e( 'Form', 'izzygld-entry-export-for-gravity-forms' ); ?></th>
+                        <th><?php esc_html_e( 'Export Enabled', 'izzygld-entry-export-for-gravity-forms' ); ?></th>
+                        <th><?php esc_html_e( 'Active Links', 'izzygld-entry-export-for-gravity-forms' ); ?></th>
+                        <th><?php esc_html_e( 'Actions', 'izzygld-entry-export-for-gravity-forms' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if ( empty( $da_forms ) ) : ?>
-                        <tr><td colspan="4"><?php esc_html_e( 'No forms found.', 'gf-external-entry-export' ); ?></td></tr>
+                        <tr><td colspan="4"><?php esc_html_e( 'No forms found.', 'izzygld-entry-export-for-gravity-forms' ); ?></td></tr>
                     <?php else : ?>
                         <?php foreach ( $da_forms as $da_form ) :
                             $da_form_settings = $this->get_form_settings( $da_form );
@@ -1073,15 +1073,15 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
                                 <td><strong><?php echo esc_html( $da_form['title'] ); ?></strong></td>
                                 <td>
                                     <?php if ( $is_turned_on ) : ?>
-                                        <span style="color:#46b450;">&#10003; <?php esc_html_e( 'Enabled', 'gf-external-entry-export' ); ?></span>
+                                        <span style="color:#46b450;">&#10003; <?php esc_html_e( 'Enabled', 'izzygld-entry-export-for-gravity-forms' ); ?></span>
                                     <?php else : ?>
-                                        <span style="color:#999;">&#10007; <?php esc_html_e( 'Disabled', 'gf-external-entry-export' ); ?></span>
+                                        <span style="color:#999;">&#10007; <?php esc_html_e( 'Disabled', 'izzygld-entry-export-for-gravity-forms' ); ?></span>
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo (int) count( $da_active_links ); ?></td>
                                 <td>
                                     <a href="<?php echo esc_url( $da_settings_url ); ?>" class="button button-small">
-                                        <?php esc_html_e( 'Manage Downloads', 'gf-external-entry-export' ); ?>
+                                        <?php esc_html_e( 'Manage Downloads', 'izzygld-entry-export-for-gravity-forms' ); ?>
                                     </a>
                                 </td>
                             </tr>
@@ -1099,7 +1099,7 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
      * @return string
      */
     public function plugin_page_title() {
-        return esc_html__( 'External Export Links', 'gf-external-entry-export' );
+        return esc_html__( 'External Export Links', 'izzygld-entry-export-for-gravity-forms' );
     }
 
     /**
@@ -1112,16 +1112,16 @@ class GF_EEE_MAIN_ADDON extends GFAddOn {
         global $wpdb;
 
         // gettin rid of the tokens table
-        $da_table_name = $wpdb->prefix . 'gf_eee_tokens';
+        $da_table_name = $wpdb->prefix . 'izzygld_eee_tokens';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Uninstall cleanup of plugin's custom table; table name is wpdb->prefix + hardcoded string.
         $wpdb->query( "DROP TABLE IF EXISTS {$da_table_name}" );
 
         // gettin rid of the logs table too
-        $da_logs_table = $wpdb->prefix . 'gf_eee_access_logs';
+        $da_logs_table = $wpdb->prefix . 'izzygld_eee_access_logs';
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Uninstall cleanup of plugin's custom table; table name is wpdb->prefix + hardcoded string.
         $wpdb->query( "DROP TABLE IF EXISTS {$da_logs_table}" );
 
         // cleanin up our options
-        delete_option( 'gf_eee_db_version' );
+        delete_option( 'izzygld_eee_db_version' );
     }
 }

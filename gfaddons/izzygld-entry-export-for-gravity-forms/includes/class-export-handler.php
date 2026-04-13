@@ -1,23 +1,23 @@
 <?php
 /**
- * Export Maker for GF External Entry Export
+ * Export Maker for Izzygld Entry Export for Gravity Forms
  *
  * handles csv generaton and entry retrieval for exports
  * basically does all the heavy liftin for gettin data out
  *
- * @package GF_External_Entry_Export
+ * @package Izzygld_Entry_Export
  */
 
 // dont let ppl access directly
 defined( 'ABSPATH' ) || exit;
 
 /**
- * GF_EEE_EXPORT_MAKER class
+ * Izzygld_EEE_Export_Handler class
  *
  * generates csv exports from gravity forms entrys using GFAPI
  * this is where the actual export magic happens
  */
-class GF_EEE_EXPORT_MAKER {
+class Izzygld_EEE_Export_Handler {
 
     /**
      * generatin the csv export for given parameters
@@ -32,7 +32,7 @@ class GF_EEE_EXPORT_MAKER {
         // gettin the form first
         $da_form = GFAPI::get_form( $da_form_id );
         if ( ! $da_form ) {
-            return new WP_Error( 'invalid_form', __( 'Form not found.', 'gf-external-entry-export' ) );
+            return new WP_Error( 'invalid_form', __( 'Form not found.', 'izzygld-entry-export-for-gravity-forms' ) );
         }
 
         // buildin the search criteria
@@ -104,7 +104,7 @@ class GF_EEE_EXPORT_MAKER {
          * @param array $da_search_stuff search criteria array
          * @param array $da_filters      original filters
          */
-        return apply_filters( 'gf_eee_search_criteria', $da_search_stuff, $da_filters );
+        return apply_filters( 'izzygld_eee_search_criteria', $da_search_stuff, $da_filters );
     }
 
     /**
@@ -119,29 +119,29 @@ class GF_EEE_EXPORT_MAKER {
         $da_field_mapping = array();
 
         // gettin addon settings for this form
-        $da_addon         = gf_eee_get_da_addon();
+        $da_addon         = izzygld_eee_get_da_addon();
         $da_form_settings = $da_addon ? $da_addon->get_form_settings( $da_form ) : array();
 
         // includin metadata fields if configured
         $da_meta_fields = array(
             'id'           => array(
-                'label'   => __( 'Entry ID', 'gf-external-entry-export' ),
+                'label'   => __( 'Entry ID', 'izzygld-entry-export-for-gravity-forms' ),
                 'setting' => 'include_entry_id',
             ),
             'date_created' => array(
-                'label'   => __( 'Date Created', 'gf-external-entry-export' ),
+                'label'   => __( 'Date Created', 'izzygld-entry-export-for-gravity-forms' ),
                 'setting' => 'include_date_created',
             ),
             'status'       => array(
-                'label'   => __( 'Status', 'gf-external-entry-export' ),
+                'label'   => __( 'Status', 'izzygld-entry-export-for-gravity-forms' ),
                 'setting' => 'include_status',
             ),
             'source_url'   => array(
-                'label'   => __( 'Source URL', 'gf-external-entry-export' ),
+                'label'   => __( 'Source URL', 'izzygld-entry-export-for-gravity-forms' ),
                 'setting' => 'include_source_url',
             ),
             'ip'           => array(
-                'label'   => __( 'IP Address', 'gf-external-entry-export' ),
+                'label'   => __( 'IP Address', 'izzygld-entry-export-for-gravity-forms' ),
                 'setting' => 'include_ip',
             ),
         );
@@ -232,7 +232,7 @@ class GF_EEE_EXPORT_MAKER {
          * @param array $da_form          form object
          * @param array $da_fields        requested fields
          */
-        return apply_filters( 'gf_eee_field_map', $da_field_mapping, $da_form, $da_fields );
+        return apply_filters( 'izzygld_eee_field_map', $da_field_mapping, $da_form, $da_fields );
     }
 
     /**
@@ -297,7 +297,7 @@ class GF_EEE_EXPORT_MAKER {
          * @param array  $da_entries    entries array
          * @param array  $da_form       form object
          */
-        return apply_filters( 'gf_eee_csv_content', $da_csv_output, $da_entries, $da_form );
+        return apply_filters( 'izzygld_eee_csv_content', $da_csv_output, $da_entries, $da_form );
     }
 
     /**
@@ -389,7 +389,7 @@ class GF_EEE_EXPORT_MAKER {
 
                 case 'consent':
                     // formatin consent field
-                    $da_value = $da_value ? __( 'Yes', 'gf-external-entry-export' ) : __( 'No', 'gf-external-entry-export' );
+                    $da_value = $da_value ? __( 'Yes', 'izzygld-entry-export-for-gravity-forms' ) : __( 'No', 'izzygld-entry-export-for-gravity-forms' );
                     break;
             }
 
@@ -413,7 +413,7 @@ class GF_EEE_EXPORT_MAKER {
          * @param mixed  $da_field field object
          * @param array  $da_form  form object
          */
-        return apply_filters( 'gf_eee_field_value', $da_value, $da_entry, $da_field, $da_form );
+        return apply_filters( 'izzygld_eee_field_value', $da_value, $da_entry, $da_field, $da_form );
     }
 
     /**

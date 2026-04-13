@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'gfaddons/gf-external-entry-export/**'
-      - '!gfaddons/gf-external-entry-export/CHANGELOG.md'
+      - 'gfaddons/izzygld-entry-export-for-gravity-forms/**'
+      - '!gfaddons/izzygld-entry-export-for-gravity-forms/CHANGELOG.md'
 
 permissions:
   contents: write
@@ -44,7 +44,7 @@ jobs:
       - name: Check if changelog entry already exists
         id: check
         run: |
-          CHANGELOG_FILE="gfaddons/gf-external-entry-export/CHANGELOG.md"
+          CHANGELOG_FILE="gfaddons/izzygld-entry-export-for-gravity-forms/CHANGELOG.md"
           COMMIT_HASH="${{ steps.commit.outputs.hash }}"
           
           if grep -q "$COMMIT_HASH" "$CHANGELOG_FILE" 2>/dev/null; then
@@ -56,7 +56,7 @@ jobs:
       - name: Update CHANGELOG.md
         if: steps.check.outputs.exists == 'false'
         run: |
-          CHANGELOG_FILE="gfaddons/gf-external-entry-export/CHANGELOG.md"
+          CHANGELOG_FILE="gfaddons/izzygld-entry-export-for-gravity-forms/CHANGELOG.md"
           COMMIT_MSG="${{ steps.commit.outputs.message }}"
           COMMIT_HASH="${{ steps.commit.outputs.hash }}"
           COMMIT_DATE="${{ steps.commit.outputs.date }}"
@@ -127,7 +127,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          git add gfaddons/gf-external-entry-export/CHANGELOG.md
+          git add gfaddons/izzygld-entry-export-for-gravity-forms/CHANGELOG.md
           
           # Check if there are changes to commit
           if git diff --staged --quiet; then

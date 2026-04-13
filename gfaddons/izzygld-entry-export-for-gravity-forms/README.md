@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📤 GF External Entry Export
+# 📤 Izzygld Entry Export for Gravity Forms
 
 ### Share Gravity Forms data securely — without giving away admin access
 
@@ -62,14 +62,14 @@
 ### Option 1: Manual Upload (Easiest)
 
 1. **Download** this plugin folder
-2. **Upload** to `/wp-content/plugins/gf-external-entry-export/`
+2. **Upload** to `/wp-content/plugins/izzygld-entry-export-for-gravity-forms/`
 3. **Activate** in WordPress → Plugins
 4. **Done!** Look for "External Export" in your Forms menu
 
 ### Option 2: Via Composer
 
 ```bash
-composer require izzygld/gf-external-entry-export
+composer require izzygld/izzygld-entry-export-for-gravity-forms
 ```
 
 ### Requirements
@@ -288,10 +288,10 @@ The CSV includes a UTF-8 BOM for Excel compatibility. If you see strange charact
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/gf-eee/v1/export` | GET | Token | Public download |
-| `/gf-eee/v1/preview` | GET | Admin | Entry count |
-| `/gf-eee/v1/form-fields/{id}` | GET | Admin | Field list |
-| `/gf-eee/v1/links` | GET | Admin | Active links |
+| `/izzygld-eee/v1/export` | GET | Token | Public download |
+| `/izzygld-eee/v1/preview` | GET | Admin | Entry count |
+| `/izzygld-eee/v1/form-fields/{id}` | GET | Admin | Field list |
+| `/izzygld-eee/v1/links` | GET | Admin | Active links |
 
 </details>
 
@@ -300,22 +300,22 @@ The CSV includes a UTF-8 BOM for Excel compatibility. If you see strange charact
 
 ```php
 // Modify search criteria
-add_filter( 'gf_eee_search_criteria', function( $criteria, $filters ) {
+add_filter( 'izzygld_eee_search_criteria', function( $criteria, $filters ) {
     return $criteria;
 }, 10, 2 );
 
 // Modify field map
-add_filter( 'gf_eee_field_map', function( $field_map, $form, $fields ) {
+add_filter( 'izzygld_eee_field_map', function( $field_map, $form, $fields ) {
     return $field_map;
 }, 10, 3 );
 
 // Transform field values
-add_filter( 'gf_eee_field_value', function( $value, $entry, $field, $form ) {
+add_filter( 'izzygld_eee_field_value', function( $value, $entry, $field, $form ) {
     return $value;
 }, 10, 4 );
 
 // Modify final CSV
-add_filter( 'gf_eee_csv_content', function( $csv, $entries, $form ) {
+add_filter( 'izzygld_eee_csv_content', function( $csv, $entries, $form ) {
     return $csv;
 }, 10, 3 );
 ```
@@ -326,7 +326,7 @@ add_filter( 'gf_eee_csv_content', function( $csv, $entries, $form ) {
 <summary><strong>Generate Link Programmatically</strong></summary>
 
 ```php
-$addon = gf_external_entry_export();
+$addon = izzygld_entry_export();
 
 $result = $addon->token_handler->generate_token([
     'form_id'     => 1,
@@ -352,13 +352,13 @@ $result = $addon->token_handler->generate_token([
 <details>
 <summary><strong>Database Tables</strong></summary>
 
-**Tokens Table:** `{prefix}_gf_eee_tokens`
+**Tokens Table:** `{prefix}_izzygld_eee_tokens`
 - Token ID, hash, form ID
 - Fields, filters (JSON)
 - Expiration, download counts
 - Revocation status
 
-**Logs Table:** `{prefix}_gf_eee_access_logs`
+**Logs Table:** `{prefix}_izzygld_eee_access_logs`
 - Access timestamp
 - IP, user agent
 - Success/failure status
