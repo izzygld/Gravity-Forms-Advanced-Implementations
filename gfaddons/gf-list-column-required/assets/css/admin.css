@@ -1,0 +1,59 @@
+/**
+ * GF List Column Required - Admin CSS
+ *
+ * styles for the "Required" checkbox that appears next to each column
+ * in the list field settings within the form editor
+ *
+ * @package GF_List_Column_Required
+ */
+
+/*
+ * the column row is flex nowrap at 100% width.
+ * our injected span sits between the text input and the +/- buttons.
+ * we need to let the text input shrink so everything fits without overflow.
+ */
+
+/* let the column name input shrink to make room for the required checkbox */
+#field_columns .field-choice-row .field-choice-text {
+    flex: 1 1 0;
+    min-width: 60px;
+}
+
+/* keep the +/- buttons from being pushed off */
+#field_columns .field-choice-row .field-choice-button {
+    flex-shrink: 0;
+}
+
+/* the wrapper around the required checkbox and label */
+.gf-lcr-required-wrap {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin: 0 6px;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+/* the checkbox itself */
+.gf-lcr-required-wrap .gf-lcr-col-required {
+    margin: 0;
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+}
+
+/* the label text */
+.gf-lcr-required-wrap .gf-lcr-required-label {
+    font-size: 11px;
+    color: #757575;
+    cursor: pointer;
+    font-weight: normal;
+    line-height: 1;
+    margin: 0;
+}
+
+/* highlight label when checked to make it obvious */
+.gf-lcr-required-wrap .gf-lcr-col-required:checked + .gf-lcr-required-label {
+    color: #d63638;
+    font-weight: 600;
+}

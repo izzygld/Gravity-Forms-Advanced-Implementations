@@ -1,0 +1,61 @@
+/**
+ * GF List Column Required - Form Editor JS
+ *
+ * injects a "Required" checkbox next to each column in the list field editor
+ * uses gf's built-in callback system: window["gform_append_field_choice_option_list"]
+ * which gets called by GetFieldChoices() for list-type fields
+ *
+ * the isColumnRequired property is stored on each choice object in field.choices[]
+ * and gets saved automatically when the form is saved (its part of the field json)
+ *
+ * @package GF_List_Column_Required
+ */
+
+(function ($) {
+    'use strict';
+
+    /**
+     * this callback is called by GetFieldChoices() in gravityforms/js.php
+     * for each column choice when rendering the columns list in the form editor
+     * it receives the field object and the choice index
+     * returns HTML string that gets appended after each column row's inputs
+     */
+    window['gform_append_field_choice_option_list'] = function (field, index) {
+        if (!field || !field.choices || !field.choices[index]) {
+            return '';
+        }
+
+        var isRequired = field.choices[index].isColumnRequired ? 'checked="checked"' : '';
+
+        var html = '<span class="gf-lcr-required-wrap">';
+        html += '<input type="checkbox" ';
+        html += 'id="gf_lcr_col_required_' + index + '" ';
+        html += 'class="gf-lcr-col-required" ';
+        html += 'data-index="' + index + '" ';
+        html += isRequired + ' ';
+        html += 'onclick="gfLcrSetColumnRequired(this, ' + index + ');" ';
+        html += '/>';
+        html += '<label for="gf_lcr_col_required_' + index + '" class="gf-lcr-required-label">';
+        html += 'Required';
+        html += '</label>';
+        html += '</span>';
+
+        return html;
+    };
+
+    /**
+     * called when the "Required" checkbox is toggled for a column
+     * sets the isColumnRequired property on the choice object
+     * GF saves this as part of the field JSON when the form is saved
+     */
+    window.gfLcrSetColumnRequired = function (checkbox, index) {
+        var field = GetSelectedField();
+
+        if (!field || !field.choices || !field.choices[index]) {
+            return;
+        }
+
+        field.choices[index].isColumnRequired = checkbox.checked;
+    };
+
+})(jQuery);
